@@ -34,4 +34,11 @@ public class DishRepository(BookOfReceiptsDbContext context) : IDishRepository
         context.Dishes.Remove(dish);
         await context.SaveChangesAsync();
     }
+
+    public async Task<IEnumerable<Dish>> GetDishesUsingProductAsync(int productId)
+    {
+        return await context.Dishes
+            .Where(d => d.Ingredients.Any(i => i.ProductId == productId))
+            .Select(d => new Dish { Id = d.Id, Name = d.Name }).ToListAsync();
+    }
 }

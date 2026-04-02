@@ -28,8 +28,13 @@ public class ProductService(IProductRepository productRepository, IDishRepositor
         var product = await productRepository.GetByIdAsync(id);
         if (product == null) return false;
 
-        if (await productRepository.IsUsedInDishesAsync(id))
-            throw new InvalidOperationException("Нельзя удалить продукт, используемый в блюдах.");
+        var dishes = await _dishRepository.GetDishesUsingProductAsync(id);
+        if (dishes.Any())
+        {
+            var dishNames = string.Join(", ", dishes.Select(d => d.Name));
+            throw new InvalidOperationException($"Нельзя удалить продукт: он используется в блюдах: {dishNames}");
+        }
+            
 
         await productRepository.DeleteAsync(product);
         return true;

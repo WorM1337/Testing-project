@@ -2,6 +2,7 @@ using Core.Extentions;
 using Core.Interfaces;
 using Core.Models;
 using Core.Models.Enums;
+using Core.Utils;
 
 namespace Core.Services;
 
@@ -10,6 +11,18 @@ public class DishService(IDishRepository dishRepository, IProductRepository prod
 {
     public async Task<Dish> CreateDishAsync(Dish dish)
     {
+        // Парсим макрос
+        var (macroCategory, cleanName) = DishCategoryParser.Parse(dish.Name);
+
+        // Сохраняем чистое имя
+        dish.Name = cleanName;
+
+        // Если категория не задана вручную — используем макрос
+        if (dish.Category == DishCategory.None && macroCategory.HasValue)
+        {
+            dish.Category = macroCategory.Value;
+        }
+        
         // 1. Рассчитать КБЖУ автоматически
         await CalculateNutritionAsync(dish);
 

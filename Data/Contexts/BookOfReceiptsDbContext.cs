@@ -8,5 +8,4 @@ public class BookOfReceiptsDbContext(DbContextOptions<BookOfReceiptsDbContext> o
     public DbSet<Product> Products { get; set; }
     public DbSet<Ingredient> Ingredients { get; set; }
     public DbSet<Dish> Dishes { get; set; }
-    public DbSet<Photo> Photos { get; set; }
 }

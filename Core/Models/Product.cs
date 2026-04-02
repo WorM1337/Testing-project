@@ -17,6 +17,6 @@ public class Product
     public DateTime? UpdatedAt { get; set; }
     
     public ExtraFlag Flags { get; set; } = ExtraFlag.None;
-    public ICollection<Photo> Photos { get; set; } = null!;
-    public ICollection<Ingredient> Ingredients { get; set; } = null!;
+    public ICollection<string> Photos { get; set; } = new List<string>();
+    public ICollection<Ingredient> Ingredients { get; set; } = new List<Ingredient>();
 }

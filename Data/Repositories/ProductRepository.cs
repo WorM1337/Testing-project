@@ -11,7 +11,6 @@ public class ProductRepository(BookOfReceiptsDbContext context) : IProductReposi
     public async Task<Product?> GetByIdAsync(int id)
     {
         return await context.Products
-            .Include(p => p.Photos)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
