@@ -2,7 +2,7 @@ using Core.Models;
 using Core.Models.Enums;
 using FluentValidation;
 
-namespace Core.Validators;
+namespace Testing_project.Validators;
 
 public class ProductValidator : AbstractValidator<Product>
 {

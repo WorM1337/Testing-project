@@ -1,7 +1,7 @@
 using Core.Models;
 using FluentValidation;
 
-namespace Data.Validators;
+namespace Testing_project.Validators;
 
 public class IngredientValidator : AbstractValidator<Ingredient>
 {

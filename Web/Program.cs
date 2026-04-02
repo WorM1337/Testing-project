@@ -1,19 +1,22 @@
 using System.Text.Json.Serialization;
 using Core.Interfaces;
 using Core.Services;
-using Core.Validators;
 using Data.Contexts;
 using Data.Repositories;
-using Data.Validators;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using Testing_project.Mappers;
+using Testing_project.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddValidatorsFromAssemblyContaining<ProductValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateDishDtoValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateProductDtoValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateIngredientDtoValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<UpdateDishDtoValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<UpdateProductDtoValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

@@ -15,6 +15,6 @@ public class Dish
     public ExtraFlag Flags { get; set; } = ExtraFlag.None;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    public ICollection<string> Photos { get; set; } = new List<string>(); // До 5
-    public ICollection<Ingredient> Ingredients { get; set; } = new List<Ingredient>();
+    public IList<string> Photos { get; set; } = new List<string>(); // До 5
+    public IList<Ingredient> Ingredients { get; set; } = new List<Ingredient>();
 }
