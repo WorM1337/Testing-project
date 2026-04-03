@@ -8,23 +8,17 @@ public class UpdateDishDtoValidator : AbstractValidator<UpdateDishDto>
 {
     public UpdateDishDtoValidator()
     {
-        RuleFor(d => d.Id)
-            .GreaterThan(0).WithMessage("Некорректный ID блюда.");
-
         RuleFor(d => d.Name)
-            .NotEmpty().WithMessage("Название блюда обязательно.")
-            .MinimumLength(2).WithMessage("Минимальная длина названия — 2 символа.");
+            .MinimumLength(2).WithMessage("Минимальная длина названия — 2 символа.")
+            .When(d => !string.IsNullOrWhiteSpace(d.Name));
 
         RuleFor(d => d.Photos)
-            .NotNull().WithMessage("Список фотографий не может быть null.")
-            .Must(photos =>photos == null || photos.Count <= 5).WithMessage("Нельзя загрузить более 5 фотографий.");
-
-        RuleFor(d => d.Category)
-            .NotEqual(DishCategory.None).WithMessage("Категория блюда обязательна.");
+            .Must(photos =>photos == null || photos.Count <= 5).WithMessage("Нельзя загрузить более 5 фотографий.")
+            .When(d => d.Photos != null);
         
         RuleFor(d => d.Ingredients)
-            .NotNull().WithMessage("Список ингредиентов не может быть пустым.")
-            .NotEmpty().WithMessage("Должен быть хотя бы один ингредиент.");
+            .NotEmpty().WithMessage("Должен быть хотя бы один ингредиент.")
+            .When(d => d.Ingredients != null);
 
         RuleForEach(d => d.Ingredients).SetValidator(new CreateIngredientDtoValidator());
     }

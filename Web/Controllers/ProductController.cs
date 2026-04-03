@@ -4,6 +4,7 @@ using Core.Models;
 using Core.Models.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Testing_project.Dtos;
+using Testing_project.Extensions;
 
 namespace Testing_project.Controllers;
 
@@ -76,15 +77,19 @@ public class ProductsController(
         return CreatedAtAction(nameof(GetProduct), new { id = resultDto.Id }, resultDto);
     }
 
-    // PUT: api/products/{id}
-    [HttpPut("{id}")]
+    // PATCH: api/products/{id}
+    [HttpPatch("{id}")]
     public async Task<IActionResult> UpdateProduct(int id, [FromBody] UpdateProductDto updateDto)
     {
-        if (id != updateDto.Id) return BadRequest();
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid) 
+            return BadRequest(ModelState);
 
-        var product = mapper.Map<Product>(updateDto);
-        product.Photos ??= new List<string>();
+        var product = await productRepository.GetByIdAsync(id);
+        if (product == null) 
+            return NotFound();
+
+        // Вся магия здесь, одна строка
+        product.ApplyUpdate(updateDto);
 
         await productService.UpdateProductAsync(product);
         return NoContent();

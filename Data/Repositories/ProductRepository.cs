@@ -19,6 +19,13 @@ public class ProductRepository(BookOfReceiptsDbContext context) : IProductReposi
         return await context.Products.ToListAsync();
     }
 
+    public async Task<List<Product>> GetByIdsAsync(List<int> ids)
+    {
+        return await context.Products
+            .Where(p => ids.Contains(p.Id))
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<Product>> GetByCategoryAsync(ProductCategory category)
     {
         return await context.Products

@@ -28,8 +28,8 @@ public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
         RuleFor(p => p.CarbsPer100g)
             .GreaterThanOrEqualTo(0).WithMessage("Количество углеводов не может быть отрицательным.");
 
-        RuleFor(p => p.Category)
-            .NotEqual(ProductCategory.None).WithMessage("Категория продукта обязательна.");
+        // RuleFor(p => p.Category)
+        //     .NotEqual(ProductCategory.None).WithMessage("Категория продукта обязательна.");
 
         RuleFor(p => p.CookingNeeded)
             .IsInEnum().WithMessage("Некорректное значение необходимости готовки.");

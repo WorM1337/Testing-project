@@ -13,11 +13,10 @@ public class CreateDishDtoValidator : AbstractValidator<CreateDishDto>
             .MinimumLength(2).WithMessage("Минимальная длина названия — 2 символа.");
 
         RuleFor(d => d.Photos)
-            .NotNull().WithMessage("Список фотографий не может быть null.")
-            .Must(photos => photos.Count <= 5).WithMessage("Нельзя загрузить более 5 фотографий.");
+            .Must(photos => photos == null || photos.Count <= 5).WithMessage("Нельзя загрузить более 5 фотографий.");
 
-        RuleFor(d => d.Category)
-            .NotEqual(DishCategory.None).WithMessage("Категория блюда обязательна.");
+        // RuleFor(d => d.Category)
+        //     .NotEqual(DishCategory.None).WithMessage("Категория блюда обязательна.");
 
         // Валидация вложенной коллекции ингредиентов
         RuleFor(d => d.Ingredients)

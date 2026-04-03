@@ -20,15 +20,12 @@ public class DishMappingProfile : Profile
             .ForMember(dest => dest.ServingSize, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
-            .ForMember(dest => dest.Photos, opt => opt.MapFrom(src => src.Photos ?? new List<string>()))
-            .ForMember(dest => dest.Flags, opt => opt.MapFrom(src => src.Flags ?? new HashSet<ExtraFlag>()));
-
+            .ForMember(dest => dest.Photos, opt => opt.MapFrom(src => src.Photos ?? new List<string>()));
         // Маппинг для обновления блюда
         CreateMap<UpdateDishDto, Dish>()
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
-            .ForMember(dest => dest.Photos, opt => opt.MapFrom(src => src.Photos ?? new List<string>()))
-            .ForMember(dest => dest.Flags, opt => opt.MapFrom(src => src.Flags ?? new HashSet<ExtraFlag>()));
+            .ForMember(dest => dest.Photos, opt => opt.MapFrom(src => src.Photos ?? new List<string>()));
 
         // Маппинг для ответа API
         CreateMap<Dish, DishDto>();

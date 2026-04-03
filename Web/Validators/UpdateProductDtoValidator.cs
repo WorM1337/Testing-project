@@ -8,33 +8,32 @@ public class UpdateProductDtoValidator : AbstractValidator<UpdateProductDto>
 {
     public UpdateProductDtoValidator()
     {
-        RuleFor(p => p.Id)
-            .GreaterThan(0).WithMessage("Некорректный ID продукта.");
-
         RuleFor(p => p.Name)
-            .NotEmpty().WithMessage("Название продукта обязательно.")
-            .MinimumLength(2).WithMessage("Минимальная длина названия — 2 символа.");
+            .MinimumLength(2).WithMessage("Минимальная длина названия — 2 символа.")
+            .When(p => p.Name != null);
 
         RuleFor(p => p.Photos)
-            .NotNull().WithMessage("Список фотографий не может быть null.")
-            .Must(photos => photos == null || photos.Count <= 5).WithMessage("Нельзя загрузить более 5 фотографий.");
+            .Must(photos => photos.Count <= 5).WithMessage("Нельзя загрузить более 5 фотографий.")
+            .When(p => p.Photos != null);
 
         RuleFor(p => p.CaloriesPer100g)
-            .GreaterThanOrEqualTo(0).WithMessage("Калорийность не может быть отрицательной.");
+            .GreaterThanOrEqualTo(0).WithMessage("Калорийность не может быть отрицательной.")
+            .When(p => p.CaloriesPer100g != null);
 
         RuleFor(p => p.ProteinsPer100g)
-            .GreaterThanOrEqualTo(0).WithMessage("Количество белков не может быть отрицательным.");
+            .GreaterThanOrEqualTo(0).WithMessage("Количество белков не может быть отрицательным.")
+            .When(p => p.ProteinsPer100g != null);
 
         RuleFor(p => p.FatsPer100g)
-            .GreaterThanOrEqualTo(0).WithMessage("Количество жиров не может быть отрицательным.");
+            .GreaterThanOrEqualTo(0).WithMessage("Количество жиров не может быть отрицательным.")
+            .When(p => p.FatsPer100g != null);
 
         RuleFor(p => p.CarbsPer100g)
-            .GreaterThanOrEqualTo(0).WithMessage("Количество углеводов не может быть отрицательным.");
-
-        RuleFor(p => p.Category)
-            .NotEqual(ProductCategory.None).WithMessage("Категория продукта обязательна.");
-            
-        RuleFor(p => p.CookingNeeded)
-            .IsInEnum().WithMessage("Некорректное значение необходимости готовки.");
+            .GreaterThanOrEqualTo(0).WithMessage("Количество углеводов не может быть отрицательным.")
+            .When(p => p.CarbsPer100g != null);
+        
+        RuleFor(p => p.CookingRequirement)
+            .IsInEnum().WithMessage("Некорректное значение необходимости готовки.")
+            .When(p => p.CookingRequirement != null);
     }
 }

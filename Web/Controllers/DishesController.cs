@@ -72,17 +72,25 @@ public class DishesController(
         return CreatedAtAction(nameof(GetDish), new { id = resultDto.Id }, resultDto);
     }
 
-    // PUT: api/dishes/{id}
-    [HttpPut("{id:int}")]
+    // PATCH: api/dishes/{id}
+    [HttpPatch("{id:int}")]
     public async Task<IActionResult> UpdateDish(int id, [FromBody] UpdateDishDto updateDto)
     {
-        if (id != updateDto.Id) return BadRequest();
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid) 
+            return BadRequest(ModelState);
 
-        var dish = mapper.Map<Dish>(updateDto);
-        dish.Photos ??= new List<string>();
+        // 1. Получаем текущее блюдо
+        var dish = await dishRepository.GetByIdAsync(id); // Предполагаем, что метод есть
+        if (dish == null)
+            return NotFound();
 
+        // 2. Применяем обновления только для переданных полей
+        // Передаем маппер, если он нужен внутри для ингредиентов
+        dish.ApplyUpdate(updateDto, mapper);
+
+        // 3. Сохраняем (сервис пересчитает КБЖУ и флаги)
         await dishService.UpdateDishAsync(dish);
+
         return NoContent();
     }
 

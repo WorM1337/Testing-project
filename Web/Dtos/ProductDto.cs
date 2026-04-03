@@ -1,23 +1,20 @@
 using Core.Models.Enums;
 
 namespace Testing_project.Dtos;
-public record ProductDto(
-    int Id,
-    string Name,
-    List<string> Photos,
-    double CaloriesPer100g,
-    double ProteinsPer100g,
-    double FatsPer100g,
-    double CarbsPer100g,
-    string? Composition,
-    ProductCategory Category,
-    CookingRequirement CookingNeeded,
-    ExtraFlag Flags,
-    DateTime CreatedAt,
-    DateTime? UpdatedAt
-)
+
+public record ProductDto
 {
-    public ProductDto() : this(0, "", new List<string>(), 0.0, 0.0, 0.0, 0.0, null, ProductCategory.None, CookingRequirement.ReadyToUse, ExtraFlag.None, DateTime.MinValue, null)
-    {
-    }
+    public int Id { get; init; }
+    public string Name { get; init; } = null!;
+    public List<string> Photos { get; init; } = new();
+    public double CaloriesPer100g { get; init; }
+    public double ProteinsPer100g { get; init; }
+    public double FatsPer100g { get; init; }
+    public double CarbsPer100g { get; init; }
+    public string? Composition { get; init; }
+    public ProductCategory Category { get; init; }
+    public CookingRequirement CookingNeeded { get; init; }
+    public ExtraFlag Flags { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime? UpdatedAt { get; init; }
 }
