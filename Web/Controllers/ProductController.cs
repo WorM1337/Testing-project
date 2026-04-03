@@ -2,7 +2,9 @@ using AutoMapper;
 using Core.Interfaces;
 using Core.Models;
 using Core.Models.Enums;
+using Core.Models.Query;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Testing_project.Dtos;
 using Testing_project.Extensions;
 
@@ -17,38 +19,11 @@ public class ProductsController(
 {
     // GET: api/products
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts(
-        [FromQuery] string? search,
-        [FromQuery] ProductCategory? category,
-        [FromQuery] CookingRequirement? cookingNeeded,
-        [FromQuery] List<ExtraFlag>? flags,
-        [FromQuery] string? sort = "name",
-        [FromQuery] bool ascending = true)
+    public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts([FromQuery] ProductQuery query)
     {
-        var query = await productRepository.GetAllAsync();
-
-        if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(p => p.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
-
-        if (category.HasValue)
-            query = query.Where(p => p.Category == category.Value);
-
-        if (cookingNeeded.HasValue)
-            query = query.Where(p => p.CookingRequirement == cookingNeeded.Value);
-
-        if (flags?.Any() == true)
-            query = query.Where(p => flags.All(f => p.Flags.HasFlag(f)));
-
-        var sortedList = sort?.ToLower() switch
-        {
-            "calories" => ascending ? query.OrderBy(p => p.CaloriesPer100g) : query.OrderByDescending(p => p.CaloriesPer100g),
-            "proteins" => ascending ? query.OrderBy(p => p.ProteinsPer100g) : query.OrderByDescending(p => p.ProteinsPer100g),
-            "fats" => ascending ? query.OrderBy(p => p.FatsPer100g) : query.OrderByDescending(p => p.FatsPer100g),
-            "carbs" => ascending ? query.OrderBy(p => p.CarbsPer100g) : query.OrderByDescending(p => p.CarbsPer100g),
-            _ => ascending ? query.OrderBy(p => p.Name) : query.OrderByDescending(p => p.Name)
-        };
-
-        var dtos = mapper.Map<IEnumerable<ProductDto>>(sortedList);
+        // Модель-байндер сам заполнит query из строки запроса ?search=...&sort=Calories...
+        var products = await productService.GetProductsAsync(query);
+        var dtos = mapper.Map<IEnumerable<ProductDto>>(products);
         return Ok(dtos);
     }
 

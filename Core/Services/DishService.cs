@@ -1,7 +1,8 @@
-using Core.Extentions;
+using Core.Extensions;
 using Core.Interfaces;
 using Core.Models;
 using Core.Models.Enums;
+using Core.Models.Query;
 using Core.Utils;
 using Microsoft.EntityFrameworkCore; // Если нужно Include, но тут лучше явный запрос
 
@@ -10,6 +11,13 @@ namespace Core.Services;
 public class DishService(IDishRepository dishRepository, IProductRepository productRepository)
     : IDishService
 {
+    public async Task<List<Dish>> GetDishesAsync(DishQuery query)
+    {
+        return await dishRepository.GetQueryable()
+            .ApplyFilters(query)
+            .ApplySorting(query.Sort, query.Ascending)
+            .ToListAsync();
+    }
     public async Task<Dish> CreateDishAsync(Dish dish)
     {
         var (macroCategory, cleanName) = DishCategoryParser.Parse(dish.Name);

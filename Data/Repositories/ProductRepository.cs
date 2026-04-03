@@ -14,11 +14,7 @@ public class ProductRepository(BookOfReceiptsDbContext context) : IProductReposi
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
-    public async Task<IEnumerable<Product>> GetAllAsync()
-    {
-        return await context.Products.ToListAsync();
-    }
-
+    public IQueryable<Product> GetQueryable() => context.Products.AsQueryable();
     public async Task<List<Product>> GetByIdsAsync(List<int> ids)
     {
         return await context.Products

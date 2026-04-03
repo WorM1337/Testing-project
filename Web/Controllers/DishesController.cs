@@ -2,7 +2,9 @@ using AutoMapper;
 using Core.Interfaces;
 using Core.Models;
 using Core.Models.Enums;
+using Core.Models.Query;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Testing_project.Dtos.Dish;
 
 namespace Testing_project.Controllers;
@@ -16,37 +18,12 @@ public class DishesController(
 {
     // GET: api/dishes
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<DishDto>>> GetDishes(
-        [FromQuery] string? search,
-        [FromQuery] DishCategory? category,
-        [FromQuery] List<ExtraFlag>? flags,
-        [FromQuery] string? sort = "name",
-        [FromQuery] bool ascending = true)
+    public async Task<ActionResult<IEnumerable<DishDto>>> GetDishes([FromQuery] DishQuery query)
     {
-        var query = await dishRepository.GetAllAsync();
-
-        if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(d => d.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
-
-        if (category.HasValue && category != DishCategory.None)
-            query = query.Where(d => d.Category == category.Value);
-
-        if (flags?.Any() == true)
-            query = query.Where(d => flags.All(f => d.Flags.HasFlag(f)));
-
-        var sortedList = sort?.ToLower() switch
-        {
-            "calories" => ascending ? query.OrderBy(d => d.CaloriesPerServing) : query.OrderByDescending(d => d.CaloriesPerServing),
-            "proteins" => ascending ? query.OrderBy(d => d.ProteinsPerServing) : query.OrderByDescending(d => d.ProteinsPerServing),
-            "fats" => ascending ? query.OrderBy(d => d.FatsPerServing) : query.OrderByDescending(d => d.FatsPerServing),
-            "carbs" => ascending ? query.OrderBy(d => d.CarbsPerServing) : query.OrderByDescending(d => d.CarbsPerServing),
-            _ => ascending ? query.OrderBy(d => d.Name) : query.OrderByDescending(d => d.Name)
-        };
-
-        var dtos = mapper.Map<IEnumerable<DishDto>>(sortedList);
+        var dishes = await dishService.GetDishesAsync(query);
+        var dtos = mapper.Map<IEnumerable<DishDto>>(dishes);
         return Ok(dtos);
     }
-
     // GET: api/dishes/{id}
     [HttpGet("{id:int}")]
     public async Task<ActionResult<DishDto>> GetDish(int id)

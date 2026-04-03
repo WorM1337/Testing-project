@@ -6,7 +6,7 @@ namespace Core.Interfaces;
 public interface IProductRepository
 {
     Task<Product?> GetByIdAsync(int id);
-    Task<IEnumerable<Product>> GetAllAsync();
+    IQueryable<Product> GetQueryable();
     Task<List<Product>> GetByIdsAsync(List<int> ids);
     Task<IEnumerable<Product>> GetByCategoryAsync(ProductCategory category);
     Task<Product> CreateAsync(Product product);

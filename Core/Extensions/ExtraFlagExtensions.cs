@@ -1,6 +1,6 @@
 using Core.Models.Enums;
 
-namespace Core.Extentions;
+namespace Core.Extensions;
 
 public static class ExtraFlagExtensions
 {

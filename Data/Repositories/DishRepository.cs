@@ -13,8 +13,8 @@ public class DishRepository(BookOfReceiptsDbContext context) : IDishRepository
             .ThenInclude(i => i.Product)
             .FirstOrDefaultAsync(d => d.Id == id);
 
-    public async Task<IEnumerable<Dish>> GetAllAsync()
-        => await context.Dishes.ToListAsync();
+    public IQueryable<Dish> GetQueryable()
+        => context.Dishes.AsQueryable();
 
     public async Task<Dish> CreateAsync(Dish dish)
     {
