@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book of Receipts - Admin UI</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --bg: #f3f4f6;
+            --card: #ffffff;
+            --text: #1f2937;
+            --border: #e5e7eb;
+        }
+
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+
+        /* Layout */
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+
+        /* Components */
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-secondary { background: #9ca3af; color: white; }
+
+        .card { background: var(--card); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
+
+        /* Forms */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 0.875rem; font-weight: 500; }
+        input, select { padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 1rem; }
+        input:focus, select:focus { outline: 2px solid var(--primary); border-color: transparent; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); }
+        th { background: #f9fafb; font-weight: 600; font-size: 0.875rem; }
+        tr:hover { background: #f9fafb; }
+
+        /* Badges */
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; background: #e5e7eb; margin-right: 4px; }
+        .badge-flag { background: #dbeafe; color: #1e40af; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: var(--card); padding: 24px; border-radius: 8px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 1.25rem; font-weight: bold; }
+
+        /* Utilities */
+        .hidden { display: none; }
+        .flex-row { display: flex; gap: 10px; align-items: center; }
+        .mt-4 { margin-top: 1rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1 data-testid="app-title">Book of Receipts API Client</h1>
+        <div id="notification-area" style="font-weight: bold;"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" role="tablist">
+        <button class="btn btn-secondary" id="tab-products" onclick="switchTab('products')" role="tab" aria-selected="true">Продукты</button>
+        <button class="btn btn-secondary" id="tab-dishes" onclick="switchTab('dishes')" role="tab" aria-selected="false">Блюда</button>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="card" data-testid="filter-section">
+        <h3>Фильтры и сортировка</h3>
+        <form id="filter-form" class="form-grid" onsubmit="event.preventDefault(); loadData();">
+            <div class="form-group">
+                <label>Поиск</label>
+                <input type="text" id="filter-search" placeholder="Название...">
+            </div>
+
+            <!-- Dynamic Category Select will be injected here -->
+            <div class="form-group">
+                <label>Категория</label>
+                <select id="filter-category">
+                    <option value="">Все</option>
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Сортировка</label>
+                <select id="filter-sort">
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Порядок</label>
+                <select id="filter-order">
+                    <option value="true">По возрастанию</option>
+                    <option value="false">По убыванию</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="justify-content: flex-end;">
+                <button type="submit" class="btn btn-primary">Применить</button>
+                <button type="button" class="btn btn-secondary" onclick="resetFilters()">Сброс</button>
+            </div>
+        </form>
+
+        <div class="mt-4">
+            <label>Флаги (через запятую или множественный выбор):</label>
+            <div class="flex-row" style="flex-wrap: wrap; gap: 10px; margin-top: 5px;">
+                <label><input type="checkbox" class="flag-filter" value="Vegan"> Vegan</label>
+                <label><input type="checkbox" class="flag-filter" value="GlutenFree"> Gluten Free</label>
+                <label><input type="checkbox" class="flag-filter" value="SugarFree"> Sugar Free</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="flex-row" style="justify-content: space-between; margin-bottom: 10px;">
+        <h2 id="list-title">Продукты</h2>
+        <button class="btn btn-success" onclick="openCreateModal()" data-testid="btn-create">+ Добавить</button>
+    </div>
+
+    <!-- Data Table -->
+    <div class="card" style="padding: 0; overflow-x: auto;">
+        <table id="data-table">
+            <thead>
+            <tr id="table-header-row">
+                <!-- Headers injected by JS -->
+            </tr>
+            </thead>
+            <tbody id="table-body">
+            <!-- Rows injected by JS -->
+            </tbody>
+        </table>
+        <div id="loading-indicator" class="hidden" style="padding: 20px; text-align: center;">Загрузка...</div>
+        <div id="empty-state" class="hidden" style="padding: 20px; text-align: center; color: #6b7280;">Нет данных</div>
+    </div>
+</div>
+
+<!-- Modal for Create/Edit -->
+<div class="modal-overlay" id="entity-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modal-title">Создание</h3>
+            <button class="btn btn-secondary" onclick="closeModal()">✕</button>
+        </div>
+        <form id="entity-form" onsubmit="handleFormSubmit(event)">
+            <input type="hidden" id="edit-id">
+            <div id="modal-fields" class="form-grid">
+                <!-- Fields injected by JS -->
+            </div>
+
+            <!-- Special handling for Ingredients in Dish -->
+            <div id="ingredients-container" class="hidden mt-4">
+                <h4>Ингредиенты</h4>
+                <div id="ingredients-list"></div>
+                <button type="button" class="btn btn-secondary mt-4" onclick="addIngredientRow()">+ Добавить ингредиент</button>
+            </div>
+
+            <div class="flex-row" style="justify-content: flex-end; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // --- Configuration & State ---
+    const API_BASE = ''; // Пусто, так как работаем относительно текущего домена
+    let currentEntity = 'products'; // 'products' or 'dishes'
+
+    // Meta configurations based on your OpenAPI/Schemas
+    const CONFIG = {
+        products: {
+            endpoint: '/api/Products',
+            title: 'Продукты',
+            categories: ['None', 'Frozen', 'Meat', 'Vegetables', 'Herbs', 'Spices', 'Cereals', 'CannedFood', 'Liquid', 'Sweets'],
+            sortOptions: [
+                { val: 'Name', label: 'Название' },
+                { val: 'Calories', label: 'Калорийность' },
+                { val: 'Proteins', label: 'Белки' },
+                { val: 'Fats', label: 'Жиры' },
+                { val: 'Carbs', label: 'Углеводы' },
+                { val: 'CreatedAt', label: 'Дата создания' }
+            ],
+            columns: [
+                { key: 'id', label: 'ID' },
+                { key: 'name', label: 'Название' },
+                { key: 'category', label: 'Категория' },
+                { key: 'caloriesPer100g', label: 'Ккал/100г' },
+                { key: 'proteinsPer100g', label: 'Белки' },
+                { key: 'fatsPer100g', label: 'Жиры' },
+                { key: 'carbsPer100g', label: 'Углеводы' },
+                { key: 'flags', label: 'Флаги', type: 'flags' }
+            ],
+            fields: [
+                { name: 'name', label: 'Название', type: 'text', required: true },
+                { name: 'category', label: 'Категория', type: 'select', options: [] }, // Filled dynamically
+                { name: 'photos', label: 'Фотографии (URL)', type: 'array', itemType: 'url' },
+                { name: 'caloriesPer100g', label: 'Ккал на 100г', type: 'number', step: '0.1' },
+                { name: 'proteinsPer100g', label: 'Белки (г)', type: 'number', step: '0.1' },
+                { name: 'fatsPer100g', label: 'Жиры (г)', type: 'number', step: '0.1' },
+                { name: 'carbsPer100g', label: 'Углеводы (г)', type: 'number', step: '0.1' },
+                { name: 'composition', label: 'Состав', type: 'text' },
+                { name: 'cookingRequirement', label: 'Требования к готовке', type: 'select', options: ['ReadyToUse', 'SemiFinished', 'RequiresCooking'] },
+                { name: 'flags', label: 'Флаги (через запятую: Vegan,GlutenFree)', type: 'text' }
+            ]
+        },
+        dishes: {
+            endpoint: '/api/Dishes',
+            title: 'Блюда',
+            categories: ['None', 'Dessert', 'Entree', 'Side', 'Drink', 'Salad', 'Soup', 'Snack'],
+            sortOptions: [
+                { val: 'Name', label: 'Название' },
+                { val: 'Calories', label: 'Калорийность порции' },
+                { val: 'Proteins', label: 'Белки' },
+                { val: 'Fats', label: 'Жиры' },
+                { val: 'Carbs', label: 'Углеводы' },
+                { val: 'Category', label: 'Категория' }
+            ],
+            columns: [
+                { key: 'id', label: 'ID' },
+                { key: 'name', label: 'Название' },
+                { key: 'category', label: 'Категория' },
+                { key: 'caloriesPerServing', label: 'Ккал/порция' },
+                { key: 'servingSize', label: 'Вес (г)' },
+                { key: 'flags', label: 'Флаги', type: 'flags' }
+            ],
+            fields: [
+                { name: 'name', label: 'Название', type: 'text', required: true },
+                { name: 'category', label: 'Категория', type: 'select', options: [] },
+                { name: 'photos', label: 'Фотографии (URL)', type: 'array', itemType: 'url' },
+                { name: 'flags', label: 'Флаги (Vegan,GlutenFree)', type: 'text' }
+            ],
+            hasIngredients: true
+        }
+    };
+
+    // --- Initialization ---
+    document.addEventListener('DOMContentLoaded', () => {
+        initFilters();
+        switchTab('products');
+    });
+
+    function initFilters() {
+        // Populate Sort Options dynamically based on current entity later
+    }
+
+    // --- Core Logic ---
+
+    // Добавить поле ввода для массива (например, URL фото)
+    function addArrayItem(fieldName, itemType = 'text') {
+        const container = document.getElementById(`container-${fieldName}`);
+        if (!container) return;
+
+        const div = document.createElement('div');
+        div.className = 'flex-row';
+        div.style.display = 'flex';
+        div.style.gap = '10px';
+        div.style.alignItems = 'center';
+
+        const input = document.createElement('input');
+        input.type = itemType;
+        input.className = 'array-item-input';
+        input.dataset.field = fieldName;
+        input.placeholder = itemType === 'url' ? 'https://...' : 'Значение';
+        input.style.flex = '1';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'btn btn-danger';
+        removeBtn.textContent = '✕';
+        removeBtn.style.padding = '4px 8px';
+        removeBtn.onclick = () => div.remove();
+
+        div.appendChild(input);
+        div.appendChild(removeBtn);
+        container.appendChild(div);
+
+        // Фокус на новое поле
+        input.focus();
+    }
+
+    // Заполнение поля массива при редактировании
+    function fillArrayField(fieldName, values) {
+        const container = document.getElementById(`container-${fieldName}`);
+        if (!container || !values) return;
+
+        // Очищаем текущие (если были)
+        container.innerHTML = '';
+
+        // Находим тип поля из конфига, чтобы знать тип инпута
+        // Упрощенно считаем, что это URL или текст
+        const currentConfig = CONFIG[currentEntity];
+        const fieldDef = currentConfig.fields.find(f => f.name === fieldName);
+        const itemType = fieldDef ? (fieldDef.itemType || 'text') : 'text';
+
+        values.forEach(val => {
+            // Создаем структуру вручную, чтобы не вызывать лишний раз addArrayItem
+            const div = document.createElement('div');
+            div.className = 'flex-row';
+            div.style.display = 'flex';
+            div.style.gap = '10px';
+            div.style.alignItems = 'center';
+
+            const input = document.createElement('input');
+            input.type = itemType;
+            input.className = 'array-item-input';
+            input.dataset.field = fieldName;
+            input.value = val;
+            input.style.flex = '1';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-danger';
+            removeBtn.textContent = '✕';
+            removeBtn.style.padding = '4px 8px';
+            removeBtn.onclick = () => div.remove();
+
+            div.appendChild(input);
+            div.appendChild(removeBtn);
+            container.appendChild(div);
+        });
+    }
+
+    function switchTab(entity) {
+        currentEntity = entity;
+        const config = CONFIG[entity];
+
+        // Update UI Tabs
+        document.querySelectorAll('.tabs button').forEach(b => {
+            b.classList.remove('btn-primary');
+            b.classList.add('btn-secondary');
+            b.setAttribute('aria-selected', 'false');
+        });
+        const activeBtn = document.getElementById(`tab-${entity}`);
+        activeBtn.classList.remove('btn-secondary');
+        activeBtn.classList.add('btn-primary');
+        activeBtn.setAttribute('aria-selected', 'true');
+
+        document.getElementById('list-title').textContent = config.title;
+
+        // Populate Filter Dropdowns
+        const catSelect = document.getElementById('filter-category');
+        catSelect.innerHTML = '<option value="">Все</option>' +
+            config.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+
+        const sortSelect = document.getElementById('filter-sort');
+        sortSelect.innerHTML = config.sortOptions.map(s => `<option value="${s.val}">${s.label}</option>`).join('');
+
+        // Populate Form Fields for Create/Edit
+        // We do this every time to ensure clean state, or optimize later
+        renderModalFields(config);
+
+        loadData();
+    }
+
+    function renderModalFields(config) {
+        const container = document.getElementById('modal-fields');
+        container.innerHTML = '';
+
+        config.fields.forEach(field => {
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            // Для массивов растягиваем на всю ширину
+            if (field.type === 'array') {
+                div.style.gridColumn = "1 / -1";
+            }
+
+            let inputHtml = '';
+
+            if (field.type === 'select') {
+                const optionsList = field.options && field.options.length > 0
+                    ? field.options
+                    : (config.categories || []);
+
+                const opts = optionsList.map(o => `<option value="${o}">${o}</option>`).join('');
+                inputHtml = `<select id="field-${field.name}" ${field.required ? 'required' : ''}>
+                            <option value="">-- Выберите --</option>
+                            ${opts}
+                         </select>`;
+            }
+            else if (field.type === 'array') {
+                // Рендерим контейнер для динамического списка
+                inputHtml = `
+                <div id="container-${field.name}" style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px;">
+                    <!-- Сюда будут добавляться инпуты -->
+                </div>
+                <button type="button" class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 8px;" 
+                        onclick="addArrayItem('${field.name}', '${field.itemType || 'text'}')">
+                    + Добавить URL
+                </button>
+            `;
+            }
+            else if (field.type === 'number') {
+                inputHtml = `<input type="number" id="field-${field.name}" step="${field.step || '1'}" ${field.required ? 'required' : ''}>`;
+            }
+            else {
+                inputHtml = `<input type="${field.type}" id="field-${field.name}" ${field.required ? 'required' : ''}>`;
+            }
+
+            div.innerHTML = `<label for="field-${field.name}">${field.label}</label>${inputHtml}`;
+            container.appendChild(div);
+        });
+
+        // Toggle Ingredients Section (только для блюд)
+        const ingContainer = document.getElementById('ingredients-container');
+        if (config.hasIngredients) {
+            ingContainer.classList.remove('hidden');
+            document.getElementById('ingredients-list').innerHTML = '';
+        } else {
+            ingContainer.classList.add('hidden');
+        }
+    }
+    async function loadData() {
+        const config = CONFIG[currentEntity];
+        const tbody = document.getElementById('table-body');
+        const thead = document.getElementById('table-header-row');
+        const loader = document.getElementById('loading-indicator');
+        const empty = document.getElementById('empty-state');
+
+        // UI Reset
+        tbody.innerHTML = '';
+        loader.classList.remove('hidden');
+        empty.classList.add('hidden');
+
+        // Build Query Params
+        const search = document.getElementById('filter-search').value;
+        const category = document.getElementById('filter-category').value;
+        const sort = document.getElementById('filter-sort').value;
+        const ascending = document.getElementById('filter-order').value === 'true';
+
+        const flags = Array.from(document.querySelectorAll('.flag-filter:checked')).map(cb => cb.value);
+
+        const params = new URLSearchParams();
+        if (search) params.append('Search', search);
+        if (category) params.append('Category', category);
+        if (sort) params.append('Sort', sort);
+        params.append('Ascending', ascending);
+        flags.forEach(f => params.append('Flags', f));
+
+        try {
+            const response = await fetch(`${config.endpoint}?${params.toString()}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+
+            // Render Headers
+            thead.innerHTML = config.columns.map(col => `<th>${col.label}</th>`).join('') +
+                '<th style="width: 150px;">Действия</th>';
+
+            // Render Rows
+            if (data.length === 0) {
+                empty.classList.remove('hidden');
+            } else {
+                data.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = config.columns.map(col => {
+                        if (col.type === 'flags') {
+                            // Simple flag parsing assuming string or enum array
+                            // Backend returns Enum as string usually in this config
+                            // If it's a bitmask or array, adjust logic. 
+                            // Assuming for now it might be a single string or we just display raw if complex
+                            // Let's try to handle if it's a list or single string
+                            let flagsHtml = '';
+                            if (item.flags) {
+                                // If backend returns "Vegan, GlutenFree" or similar, split it. 
+                                // Based on C# Enum [Flags], JSON might be "Vegan, GlutenFree"
+                                const flagList = typeof item.flags === 'string' ? item.flags.split(', ') : [item.flags];
+                                flagsHtml = flagList.filter(f => f && f !== 'None').map(f => `<span class="badge badge-flag">${f}</span>`).join('');
+                            }
+                            return `<td>${flagsHtml}</td>`;
+                        }
+                        return `<td>${item[col.key] !== null ? item[col.key] : ''}</td>`;
+                    }).join('') + `
+                        <td>
+                            <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick='openEditModal(${JSON.stringify(item).replace(/'/g, "&#39;")})'>Edit</button>
+                            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 0.8rem;" onclick="deleteItem(${item.id})">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        } catch (err) {
+            showNotification(`Ошибка загрузки: ${err.message}`, 'error');
+            empty.textContent = "Ошибка загрузки данных";
+            empty.classList.remove('hidden');
+        } finally {
+            loader.classList.add('hidden');
+        }
+    }
+
+    // --- Modal & Form Handling ---
+
+    function openCreateModal() {
+        document.getElementById('modal-title').textContent = `Добавить ${CONFIG[currentEntity].title.slice(0, -1)}`; // Remove 's' roughly
+        document.getElementById('edit-id').value = '';
+        document.getElementById('entity-form').reset();
+
+        if (CONFIG[currentEntity].hasIngredients) {
+            document.getElementById('ingredients-list').innerHTML = '';
+        }
+
+        document.getElementById('entity-modal').classList.add('active');
+    }
+
+    function openEditModal(item) {
+        document.getElementById('modal-title').textContent = `Редактировать: ${item.name}`;
+        document.getElementById('edit-id').value = item.id;
+
+        // Заполнение обычных полей
+        CONFIG[currentEntity].fields.forEach(field => {
+            const input = document.getElementById(`field-${field.name}`);
+            if (input) {
+                let val = item[field.name];
+                if (field.name === 'flags' && Array.isArray(val)) {
+                    val = val.filter(v => v !== 'None').join(', ');
+                }
+                input.value = val !== null && val !== undefined ? val : '';
+            }
+
+            // СПЕЦИАЛЬНАЯ ОБРАБОТКА ДЛЯ МАССИВОВ (Photos)
+            if (field.type === 'array' && item[field.name]) {
+                fillArrayField(field.name, item[field.name]);
+            }
+        });
+
+        // Ингредиенты...
+        if (CONFIG[currentEntity].hasIngredients && item.ingredients) {
+            // ... существующий код ингредиентов ...
+            const ingList = document.getElementById('ingredients-list');
+            ingList.innerHTML = '';
+            item.ingredients.forEach(ing => addIngredientRow(ing.productId, ing.amountInGrams));
+        }
+
+        document.getElementById('entity-modal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('entity-modal').classList.remove('active');
+    }
+
+    function addIngredientRow(productId = '', amount = '') {
+        const container = document.getElementById('ingredients-list');
+        const div = document.createElement('div');
+        div.className = 'flex-row form-group';
+        div.style.flexDirection = 'row';
+        div.style.alignItems = 'center';
+        div.style.marginBottom = '10px';
+
+        // In a real app, fetch products list for the select options
+        div.innerHTML = `
+            <div style="flex: 1;">
+                <label style="font-size: 0.7rem">Product ID</label>
+                <input type="number" class="ing-product-id" value="${productId}" placeholder="ID продукта" required style="width: 100%;">
+            </div>
+            <div style="flex: 1;">
+                <label style="font-size: 0.7rem">Grams</label>
+                <input type="number" class="ing-amount" value="${amount}" step="0.1" placeholder="г" required style="width: 100%;">
+            </div>
+            <button type="button" class="btn btn-danger" style="margin-top: auto;" onclick="this.parentElement.remove()">✕</button>
+        `;
+        container.appendChild(div);
+    }
+
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        const id = document.getElementById('edit-id').value;
+        const config = CONFIG[currentEntity];
+
+        const payload = {};
+        if (id) payload.id = parseInt(id);
+
+        config.fields.forEach(field => {
+            // Логика для массивов (Photos)
+            if (field.type === 'array') {
+                const container = document.getElementById(`container-${field.name}`);
+                if (container) {
+                    const inputs = container.querySelectorAll('.array-item-input');
+                    const values = Array.from(inputs)
+                        .map(inp => inp.value.trim())
+                        .filter(val => val !== ''); // Убираем пустые
+
+                    if (values.length > 0) {
+                        payload[field.name] = values;
+                    }
+                }
+                return; // Переходим к следующему полю
+            }
+
+            // Логика для обычных полей
+            const input = document.getElementById(`field-${field.name}`);
+            if (input) {
+                let val = input.value;
+                if (val === '') return;
+
+                if (field.type === 'number') val = parseFloat(val);
+                if (field.name === 'flags' && typeof val === 'string') {
+                    // Флаги оставляем строкой для C# [Flags] enum
+                }
+                payload[field.name] = val;
+            }
+        });
+
+        // Ингредиенты (без изменений)...
+        if (config.hasIngredients) {
+            const ingredients = [];
+            document.querySelectorAll('#ingredients-list > div').forEach(row => {
+                const pId = row.querySelector('.ing-product-id').value;
+                const amt = row.querySelector('.ing-amount').value;
+                if (pId && amt) {
+                    ingredients.push({
+                        productId: parseInt(pId),
+                        amountInGrams: parseFloat(amt)
+                    });
+                }
+            });
+            payload.ingredients = ingredients;
+        }
+
+        const method = id ? 'PATCH' : 'POST';
+        const url = id ? `${config.endpoint}/${id}` : config.endpoint;
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || `HTTP ${response.status}`);
+            }
+
+            showNotification('Успешно сохранено!', 'success');
+            closeModal();
+            loadData();
+        } catch (err) {
+            showNotification(`Ошибка сохранения: ${err.message}`, 'error');
+        }
+    }
+
+    async function deleteItem(id) {
+        if (!confirm('Вы уверены, что хотите удалить этот элемент?')) return;
+
+        const config = CONFIG[currentEntity];
+        try {
+            const response = await fetch(`${config.endpoint}/${id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            showNotification('Удалено', 'success');
+            loadData();
+        } catch (err) {
+            showNotification(`Ошибка удаления: ${err.message}`, 'error');
+        }
+    }
+
+    function resetFilters() {
+        document.getElementById('filter-form').reset();
+        document.querySelectorAll('.flag-filter').forEach(cb => cb.checked = false);
+        loadData();
+    }
+
+    function showNotification(msg, type) {
+        const area = document.getElementById('notification-area');
+        area.textContent = msg;
+        area.style.color = type === 'error' ? 'var(--danger)' : 'var(--success)';
+        setTimeout(() => { area.textContent = ''; }, 3000);
+    }
+</script>
+
+</body>
+</html>
