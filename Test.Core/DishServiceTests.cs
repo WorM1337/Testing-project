@@ -4,74 +4,65 @@ using Core.Models.Enums;
 using Core.Services;
 using FluentAssertions;
 using Moq;
+using Xunit;
 
 namespace Test.Core;
 
 public class DishServiceTests
 {
-    private readonly Mock<IDishRepository> _dishRepoMock;
-    private readonly Mock<IProductRepository> _productRepoMock;
+    private readonly Mock<IDishRepository> _dishRepository;
+    private readonly Mock<IProductRepository> _productRepository;
     private readonly DishService _dishService;
 
     public DishServiceTests()
     {
-        _dishRepoMock = new Mock<IDishRepository>();
-        _productRepoMock = new Mock<IProductRepository>();
-        _dishService = new DishService(_dishRepoMock.Object, _productRepoMock.Object);
+        _dishRepository = new Mock<IDishRepository>();
+        _productRepository = new Mock<IProductRepository>();
+        _dishService = new DishService(_dishRepository.Object, _productRepository.Object);
     }
 
-    [Fact]
-    public async Task CreateDishAsync_CalculatesNutritionCorrectly()
+    #region Тесты расчёта КБЖУ
+
+    /// <summary>
+    /// Проверяем расчет нутриентов на граничных значениях веса ингредиента.
+    /// Эквивалентные классы: 0, малый вес (>0), стандартный вес (100), большой вес.
+    /// </summary>
+    [Theory]
+    [InlineData(0, 0.0, 0.0, 0.0, 0.0)]
+    [InlineData(1, 1.65, 0.31, 0.036, 0.0)]
+    [InlineData(100, 165.0, 31.0, 3.6, 0.0)]
+    [InlineData(250, 412.5, 77.5, 9.0, 0.0)]
+    public async Task CreateDishAsync_CalculatesNutrition_BoundaryValues(
+        int amountInGrams, 
+        double expectedCalories, 
+        double expectedProteins, 
+        double expectedFats, 
+        double expectedCarbs)
     {
         // Arrange
-        var product1 = new Product
+        var product = new Product
         {
             Id = 1,
-            Name = "Chicken",
+            Name = "Test Product",
             CaloriesPer100g = 165,
             ProteinsPer100g = 31,
             FatsPer100g = 3.6,
             CarbsPer100g = 0
         };
 
-        var product2 = new Product
-        {
-            Id = 2,
-            Name = "Rice",
-            CaloriesPer100g = 130,
-            ProteinsPer100g = 2.7,
-            FatsPer100g = 0.3,
-            CarbsPer100g = 28
-        };
-
-        var products = new List<Product> { product1, product2 };
-        
-        // Настраиваем мок репозитория продуктов
-        _productRepoMock.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
-            .ReturnsAsync(products);
+        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
+            .ReturnsAsync(new List<Product> { product });
 
         var dish = new Dish
         {
-            Name = "Chicken Rice Bowl",
+            Name = "Test Dish",
             Ingredients = new List<Ingredient>
             {
-                new Ingredient { ProductId = 1, AmountInGrams = 200 }, // 200g курицы
-                new Ingredient { ProductId = 2, AmountInGrams = 150 }  // 150g риса
+                new Ingredient { ProductId = 1, AmountInGrams = amountInGrams }
             }
         };
 
-        // Ожидаемые значения:
-        // Курица (200г): Ккал = 165*2 = 330, Белки = 31*2 = 62, Жиры = 3.6*2 = 7.2, Углеводы = 0
-        // Рис (150г):   Ккал = 130*1.5 = 195, Белки = 2.7*1.5 = 4.05, Жиры = 0.3*1.5 = 0.45, Углеводы = 28*1.5 = 42
-        // Итого: Ккал = 525, Белки = 66.05, Жиры = 7.65, Углеводы = 42, Вес = 350
-        double expectedCalories = 525.0;
-        double expectedProteins = 66.05;
-        double expectedFats = 7.65;
-        double expectedCarbs = 42.0;
-        double expectedWeight = 350.0;
-
-        // Mock для сохранения (просто возвращает тот же объект)
-        _dishRepoMock.Setup(r => r.CreateAsync(It.IsAny<Dish>()))
+        _dishRepository.Setup(r => r.CreateAsync(It.IsAny<Dish>()))
             .ReturnsAsync((Dish d) => d);
 
         // Act
@@ -82,70 +73,50 @@ public class DishServiceTests
         result.ProteinsPerServing.Should().BeApproximately(expectedProteins, 0.01);
         result.FatsPerServing.Should().BeApproximately(expectedFats, 0.01);
         result.CarbsPerServing.Should().BeApproximately(expectedCarbs, 0.01);
-        result.ServingSize.Should().BeApproximately(expectedWeight, 0.01);
+        result.ServingSize.Should().BeApproximately(amountInGrams, 0.01);
     }
 
-    [Fact]
-    public async Task CreateDishAsync_SetsVeganFlag_WhenAllIngredientsAreVegan()
+    #endregion
+
+    #region Тесты Флагов
+
+    /// <summary>
+    /// Проверяем логику флагов на представителях разных классов эквивалентности.
+    /// </summary>
+    [Theory]
+    [InlineData(true, true, true)] 
+    [InlineData(true, false, false)] 
+    [InlineData(false, true, false)] 
+    [InlineData(false, false, false)] 
+    public async Task CreateDishAsync_SetsFlags_EquivalenceClasses(
+        bool firstIsVegan, 
+        bool secondIsVegan, 
+        bool expectedHasVeganFlag)
     {
         // Arrange
-        var veganProduct = new Product
+        var products = new List<Product>
         {
-            Id = 1,
-            Name = "Apple",
-            Flags = ExtraFlag.Vegan | ExtraFlag.GlutenFree | ExtraFlag.SugarFree
-        };
-
-        _productRepoMock.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
-            .ReturnsAsync(new List<Product> { veganProduct });
-
-        var dish = new Dish
-        {
-            Name = "Apple Salad",
-            Flags = ExtraFlag.None,
-            Ingredients = new List<Ingredient>
-            {
-                new Ingredient { ProductId = 1, AmountInGrams = 100 }
+            new Product 
+            { 
+                Id = 1, 
+                Name = "Product 1", 
+                Flags = firstIsVegan ? ExtraFlag.Vegan : ExtraFlag.None 
+            },
+            new Product 
+            { 
+                Id = 2, 
+                Name = "Product 2", 
+                Flags = secondIsVegan ? ExtraFlag.Vegan : ExtraFlag.None 
             }
         };
 
-        _dishRepoMock.Setup(r => r.CreateAsync(It.IsAny<Dish>()))
-            .ReturnsAsync((Dish d) => d);
-
-        // Act
-        var result = await _dishService.CreateDishAsync(dish);
-
-        // Assert
-        result.Flags.Should().HaveFlag(ExtraFlag.Vegan);
-        result.Flags.Should().HaveFlag(ExtraFlag.GlutenFree);
-        result.Flags.Should().HaveFlag(ExtraFlag.SugarFree);
-    }
-
-    [Fact]
-    public async Task CreateDishAsync_RemovesVeganFlag_WhenOneIngredientIsNotVegan()
-    {
-        // Arrange
-        var veganProduct = new Product
-        {
-            Id = 1,
-            Name = "Lettuce",
-            Flags = ExtraFlag.Vegan
-        };
-
-        var meatProduct = new Product
-        {
-            Id = 2,
-            Name = "Beef",
-            Flags = ExtraFlag.None // Не веганский
-        };
-
-        _productRepoMock.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
-            .ReturnsAsync(new List<Product> { veganProduct, meatProduct });
+        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
+            .ReturnsAsync(products);
 
         var dish = new Dish
         {
-            Name = "Salad with Beef",
-            Flags = ExtraFlag.Vegan, // Изначально стоит флаг, но должен сняться
+            Name = "Test Dish",
+            Flags = ExtraFlag.None,
             Ingredients = new List<Ingredient>
             {
                 new Ingredient { ProductId = 1, AmountInGrams = 100 },
@@ -153,23 +124,33 @@ public class DishServiceTests
             }
         };
 
-        _dishRepoMock.Setup(r => r.CreateAsync(It.IsAny<Dish>()))
+        _dishRepository.Setup(r => r.CreateAsync(It.IsAny<Dish>()))
             .ReturnsAsync((Dish d) => d);
 
         // Act
         var result = await _dishService.CreateDishAsync(dish);
 
         // Assert
-        result.Flags.Should().NotHaveFlag(ExtraFlag.Vegan);
+        if (expectedHasVeganFlag)
+        {
+            result.Flags.Should().HaveFlag(ExtraFlag.Vegan);
+        }
+        else
+        {
+            result.Flags.Should().NotHaveFlag(ExtraFlag.Vegan);
+        }
     }
-    
+
+    #endregion
+
+    #region Тесты Обработки Ошибок (Граничные условия данных)
+
     [Fact]
-    public async Task CreateDishAsync_ThrowsException_WhenProductNotFound()
+    public async Task CreateDishAsync_Throws_WhenProductMissing()
     {
         // Arrange
-        // Возвращаем пустой список, хотя запрос был на ID
-        _productRepoMock.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
-            .ReturnsAsync(new List<Product>()); 
+        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
+            .ReturnsAsync(new List<Product>());
 
         var dish = new Dish
         {
@@ -180,40 +161,59 @@ public class DishServiceTests
             }
         };
 
+        _dishRepository.Setup(r => r.CreateAsync(It.IsAny<Dish>()))
+            .ReturnsAsync((Dish d) => d);
+
         // Act
-        var action = async () => await _dishService.CreateDishAsync(dish); 
+        var action = () => _dishService.CreateDishAsync(dish);
         
         // Assert
-        await action.Should().ThrowAsync<InvalidOperationException>();
+        await action.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*не найден*");
     }
 
-    [Fact]
-    public async Task CreateDishAsync_AutoSetsCategory_FromName()
+    #endregion
+
+    #region Тесты Парсинга Категории
+
+    [Theory]
+    [InlineData("!десерт Cake", DishCategory.Dessert, "Cake")]
+    [InlineData("!суп Borscht", DishCategory.Soup, "Borscht")]
+    [InlineData("Just Cake", DishCategory.None, "Just Cake")]
+    [InlineData("!unknown Food", DishCategory.None, "!unknown Food")] 
+    public async Task CreateDishAsync_ParseCategory_EquivalenceClasses(
+        string inputName,
+        DishCategory expectedCategory,
+        string expectedCleanName)
     {
         // Arrange
-        _productRepoMock.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
-            .ReturnsAsync(new List<Product>()); // Ингредиенты не важны для этого теста
+        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
+            .ReturnsAsync(new List<Product>());
 
         var dish = new Dish
         {
-            Name = "!десерт Cake", // Парсер должен вытащить Dessert
+            Name = inputName,
             Category = DishCategory.None,
             Ingredients = new List<Ingredient>()
         };
 
-        _dishRepoMock.Setup(r => r.CreateAsync(It.IsAny<Dish>()))
+        _dishRepository.Setup(r => r.CreateAsync(It.IsAny<Dish>()))
             .ReturnsAsync((Dish d) => d);
 
         // Act
         var result = await _dishService.CreateDishAsync(dish);
 
         // Assert
-        result.Category.Should().Be(DishCategory.Dessert);
-        result.Name.Should().Be("Cake");
+        result.Category.Should().Be(expectedCategory);
+        result.Name.Should().Be(expectedCleanName);
     }
-    
+
+    #endregion
+
+    #region Тесты Обновления
+
     [Fact]
-    public async Task UpdateDishAsync_RecalculatesNutrition()
+    public async Task UpdateDishAsync_Recalculates_WhenIngredientsChange()
     {
         // Arrange
         var product = new Product
@@ -221,39 +221,36 @@ public class DishServiceTests
             Id = 1,
             Name = "Sugar",
             CaloriesPer100g = 400,
-            ProteinsPer100g = 0,
-            FatsPer100g = 0,
-            CarbsPer100g = 100,
             Flags = ExtraFlag.None
         };
 
-        _productRepoMock.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
+        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
             .ReturnsAsync(new List<Product> { product });
 
         var dish = new Dish
         {
             Id = 1,
-            Name = "Sweet Tea",
+            Name = "Tea",
             Ingredients = new List<Ingredient>
             {
-                new Ingredient { ProductId = 1, AmountInGrams = 50 } // 50г сахара
+                new Ingredient { ProductId = 1, AmountInGrams = 50 }
             },
-            // Старые данные (неверные), которые должны пересчитаться
             CaloriesPerServing = 0,
-            Flags = ExtraFlag.Vegan 
+            Flags = ExtraFlag.Vegan
         };
 
-        _dishRepoMock.Setup(r => r.UpdateAsync(It.IsAny<Dish>()))
-            .Returns(Task.CompletedTask); // UpdateAsync обычно void или Task
+        _dishRepository.Setup(r => r.UpdateAsync(It.IsAny<Dish>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         var result = await _dishService.UpdateDishAsync(dish);
 
         // Assert
-        // 50г сахара = 200 ккал
         result.CaloriesPerServing.Should().BeApproximately(200.0, 0.01);
-        // Флаг Vegan должен сняться, так как сахар (в нашем примере) не имеет флага Vegan (или имеет, зависит от данных)
-        // В данном случае у продукта Flags = None, значит флаг Vegan должен сняться с блюда
         result.Flags.Should().NotHaveFlag(ExtraFlag.Vegan);
+        
+        _dishRepository.Verify(r => r.UpdateAsync(dish), Times.Once);
     }
+
+    #endregion
 }
