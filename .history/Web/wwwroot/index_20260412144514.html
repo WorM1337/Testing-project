@@ -119,12 +119,10 @@
       </div>
     </div>
 
-    <!-- Toast Notifications Container -->
-    <div id="toast-container" class="toast-container"></div>
-
     <div class="app-container">
       <header class="header">
         <h1>📖 Книга Рецептов</h1>
+        <div id="notification-area" class="notification-area"></div>
       </header>
 
       <!-- Tabs Navigation -->
@@ -169,17 +167,6 @@
             <label for="filter-category">Категория</label>
             <select id="filter-category">
               <option value="">Все категории</option>
-            </select>
-          </div>
-
-          <div
-            class="form-group"
-            id="cooking-requirement-filter-group"
-            style="display: none"
-          >
-            <label for="filter-cooking-requirement">Требования к готовке</label>
-            <select id="filter-cooking-requirement">
-              <option value="">Все</option>
             </select>
           </div>
 
@@ -252,6 +239,117 @@
         <div id="empty-state" class="empty-state hidden">
           <span class="empty-icon">📭</span>
           <p>Нет данных для отображения</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Create/Edit Entity -->
+    <div class="modal-overlay" id="entity-modal">
+      <div class="modal modal-large">
+        <div class="modal-header">
+          <h3 id="modal-title">Создание</h3>
+          <button class="btn btn-icon-btn" onclick="app.closeModal()">✕</button>
+        </div>
+        <form id="entity-form" onsubmit="app.handleFormSubmit(event)">
+          <input type="hidden" id="edit-id" />
+          <div id="modal-fields" class="form-grid"></div>
+
+          <!-- Ingredients Section (for dishes only) -->
+          <div id="ingredients-container" class="ingredients-section hidden">
+            <h4>📋 Ингредиенты</h4>
+            <div class="ingredients-info">
+              <p>
+                💡 Выберите продукты из списка. Один продукт можно добавить
+                только один раз.
+              </p>
+            </div>
+            <div id="ingredients-list"></div>
+            <div class="ingredient-selector">
+              <select id="ingredient-product-select" class="form-control">
+                <option value="">-- Выберите продукт --</option>
+              </select>
+              <input
+                type="number"
+                id="ingredient-amount"
+                class="form-control"
+                placeholder="Грамм"
+                min="1"
+                step="1"
+              />
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="app.addIngredient()"
+              >
+                Добавить
+              </button>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="app.closeModal()"
+            >
+              Отмена
+            </button>
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: View Entity Details -->
+    <div class="modal-overlay" id="view-modal">
+      <div class="modal modal-medium">
+        <div class="modal-header">
+          <h3 id="view-modal-title">Просмотр</h3>
+          <button class="btn btn-icon-btn" onclick="app.closeViewModal()">
+            ✕
+          </button>
+        </div>
+        <div id="view-modal-content" class="view-content"></div>
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick="app.closeViewModal()"
+          >
+            Закрыть
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Image Viewer -->
+    <div class="modal-overlay" id="image-modal">
+      <div class="modal modal-image">
+        <div class="modal-header">
+          <h3>Просмотр изображения</h3>
+          <button class="btn btn-icon-btn" onclick="app.closeImageModal()">
+            ✕
+          </button>
+        </div>
+        <div class="image-viewer">
+          <img id="image-viewer-img" src="" alt="Просмотр" />
+        </div>
+        <div class="image-nav">
+          <button
+            class="btn btn-secondary"
+            id="image-prev"
+            onclick="app.navigateImage(-1)"
+          >
+            ← Назад
+          </button>
+          <span id="image-counter"></span>
+          <button
+            class="btn btn-secondary"
+            id="image-next"
+            onclick="app.navigateImage(1)"
+          >
+            Вперёд →
+          </button>
         </div>
       </div>
     </div>

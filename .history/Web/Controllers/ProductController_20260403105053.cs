@@ -74,21 +74,10 @@ public class ProductsController(
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteProduct(int id)
     {
-        try
-        {
-            var result = await productService.DeleteProductAsync(id);
-            if (!result)
-                return BadRequest(new { error = result });
+        var result = await productService.DeleteProductAsync(id);
+        if (!result)
+            return BadRequest(new { error = result });
 
-            return NoContent();
-        }
-        catch (InvalidOperationException ex)
-        {
-            // Product is used in dishes - return 400 with details
-            return BadRequest(new { 
-                error = ex.Message,
-                type = "ProductInUse"
-            });
-        }
+        return NoContent();
     }
 }

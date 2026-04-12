@@ -31,9 +31,6 @@ public class DishService(IDishRepository dishRepository, IProductRepository prod
         // 1. Загружаем продукты одним запросом
         await LoadProductsForIngredientsAsync(dish);
 
-        // 1.5. Валидация флагов: нельзя установить флаг, если не все ингредиенты его имеют
-        ValidateFlags(dish);
-
         // 2. Расчеты КБЖУ (только если пользователь не указал свои значения)
         CalculateNutrition(dish, 
             overrideCalories: dish.CaloriesPerServing,
@@ -167,74 +164,12 @@ public class DishService(IDishRepository dishRepository, IProductRepository prod
             carbs += (product.CarbsPer100g * qty) / 100;
         }
 
-        // Используем пользовательские значения (если они были явно указаны) или рассчитанные
-        // null означает "рассчитать автоматически"
+        // Используем пользовательские значения или рассчитанные
         dish.CaloriesPerServing = overrideCalories ?? calories;
         dish.ProteinsPerServing = overrideProteins ?? proteins;
         dish.FatsPerServing = overrideFats ?? fats;
         dish.CarbsPerServing = overrideCarbs ?? carbs;
         dish.ServingSize = overrideServingSize ?? totalWeight;
-    }
-
-    /// <summary>
-    /// Валидация флагов: проверяет, что пользователь не пытается установить флаг,
-    /// который не поддерживается всеми ингредиентами.
-    /// </summary>
-    private void ValidateFlags(Dish dish)
-    {
-        // Проверяем только если пользователь явно указал флаги
-        if (dish.Flags == ExtraFlag.None)
-            return;
-
-        var invalidFlags = new List<string>();
-
-        // Проверка флага "Веган"
-        if (dish.Flags.HasFlag(ExtraFlag.Vegan))
-        {
-            var nonVeganProducts = dish.Ingredients
-                .Where(i => !i.Product.Flags.HasFlag(ExtraFlag.Vegan))
-                .Select(i => i.Product.Name)
-                .ToList();
-
-            if (nonVeganProducts.Any())
-            {
-                invalidFlags.Add($"Веган: продукты без флага — {string.Join(", ", nonVeganProducts)}");
-            }
-        }
-
-        // Проверка флага "Без глютена"
-        if (dish.Flags.HasFlag(ExtraFlag.GlutenFree))
-        {
-            var nonGlutenFreeProducts = dish.Ingredients
-                .Where(i => !i.Product.Flags.HasFlag(ExtraFlag.GlutenFree))
-                .Select(i => i.Product.Name)
-                .ToList();
-
-            if (nonGlutenFreeProducts.Any())
-            {
-                invalidFlags.Add($"Без глютена: продукты без флага — {string.Join(", ", nonGlutenFreeProducts)}");
-            }
-        }
-
-        // Проверка флага "Без сахара"
-        if (dish.Flags.HasFlag(ExtraFlag.SugarFree))
-        {
-            var nonSugarFreeProducts = dish.Ingredients
-                .Where(i => !i.Product.Flags.HasFlag(ExtraFlag.SugarFree))
-                .Select(i => i.Product.Name)
-                .ToList();
-
-            if (nonSugarFreeProducts.Any())
-            {
-                invalidFlags.Add($"Без сахара: продукты без флага — {string.Join(", ", nonSugarFreeProducts)}");
-            }
-        }
-
-        if (invalidFlags.Any())
-        {
-            throw new InvalidOperationException(
-                $"Нельзя установить флаги: {string.Join("; ", invalidFlags)}");
-        }
     }
 
     private void SetFlagsBasedOnIngredients(Dish dish)

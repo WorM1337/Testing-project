@@ -7,7 +7,130 @@
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body>
-    <!-- Modal overlays must be direct children of body for proper z-index -->
+    <div class="app-container">
+      <header class="header">
+        <h1>📖 Книга Рецептов</h1>
+        <div id="notification-area" class="notification-area"></div>
+      </header>
+
+      <!-- Tabs Navigation -->
+      <nav class="tabs" role="tablist">
+        <button
+          class="tab-btn active"
+          data-tab="products"
+          onclick="app.switchTab('products')"
+        >
+          🥦 Продукты
+        </button>
+        <button
+          class="tab-btn"
+          data-tab="dishes"
+          onclick="app.switchTab('dishes')"
+        >
+          🍽️ Блюда
+        </button>
+      </nav>
+
+      <!-- Filters Section -->
+      <section class="card filters-section">
+        <h2>🔍 Фильтры и поиск</h2>
+        <form
+          id="filter-form"
+          class="filter-grid"
+          onsubmit="
+            event.preventDefault();
+            app.loadData();
+          "
+        >
+          <div class="form-group">
+            <label for="filter-search">Поиск по названию</label>
+            <input
+              type="text"
+              id="filter-search"
+              placeholder="Введите название..."
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="filter-category">Категория</label>
+            <select id="filter-category">
+              <option value="">Все категории</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="filter-sort">Сортировка</label>
+            <select id="filter-sort"></select>
+          </div>
+
+          <div class="form-group">
+            <label for="filter-order">Порядок</label>
+            <select id="filter-order">
+              <option value="true">По возрастанию ↑</option>
+              <option value="false">По убыванию ↓</option>
+            </select>
+          </div>
+
+          <div class="form-group flags-filter-group">
+            <label>Дополнительные флаги</label>
+            <div class="flags-filter">
+              <label class="checkbox-label">
+                <input type="checkbox" class="flag-filter" value="Vegan" />
+                <span>🌱 Веган</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" class="flag-filter" value="GlutenFree" />
+                <span>🌾 Без глютена</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" class="flag-filter" value="SugarFree" />
+                <span>🍬 Без сахара</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group filter-actions">
+            <button type="submit" class="btn btn-primary">Применить</button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="app.resetFilters()"
+            >
+              Сброс
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Action Bar -->
+      <div class="action-bar">
+        <h2 id="list-title">Продукты</h2>
+        <button class="btn btn-success" onclick="app.openCreateModal()">
+          <span class="btn-icon">+</span> Добавить
+        </button>
+      </div>
+
+      <!-- Data Table -->
+      <div class="card table-card">
+        <div class="table-wrapper">
+          <table id="data-table">
+            <thead>
+              <tr id="table-header-row"></tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+        <div id="loading-indicator" class="loading hidden">
+          <div class="spinner"></div>
+          <span>Загрузка данных...</span>
+        </div>
+        <div id="empty-state" class="empty-state hidden">
+          <span class="empty-icon">📭</span>
+          <p>Нет данных для отображения</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal: Create/Edit Entity -->
     <div class="modal-overlay" id="entity-modal">
       <div class="modal modal-large">
@@ -115,143 +238,6 @@
           >
             Вперёд →
           </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Toast Notifications Container -->
-    <div id="toast-container" class="toast-container"></div>
-
-    <div class="app-container">
-      <header class="header">
-        <h1>📖 Книга Рецептов</h1>
-      </header>
-
-      <!-- Tabs Navigation -->
-      <nav class="tabs" role="tablist">
-        <button
-          class="tab-btn active"
-          data-tab="products"
-          onclick="app.switchTab('products')"
-        >
-          🥦 Продукты
-        </button>
-        <button
-          class="tab-btn"
-          data-tab="dishes"
-          onclick="app.switchTab('dishes')"
-        >
-          🍽️ Блюда
-        </button>
-      </nav>
-
-      <!-- Filters Section -->
-      <section class="card filters-section">
-        <h2>🔍 Фильтры и поиск</h2>
-        <form
-          id="filter-form"
-          class="filter-grid"
-          onsubmit="
-            event.preventDefault();
-            app.loadData();
-          "
-        >
-          <div class="form-group">
-            <label for="filter-search">Поиск по названию</label>
-            <input
-              type="text"
-              id="filter-search"
-              placeholder="Введите название..."
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="filter-category">Категория</label>
-            <select id="filter-category">
-              <option value="">Все категории</option>
-            </select>
-          </div>
-
-          <div
-            class="form-group"
-            id="cooking-requirement-filter-group"
-            style="display: none"
-          >
-            <label for="filter-cooking-requirement">Требования к готовке</label>
-            <select id="filter-cooking-requirement">
-              <option value="">Все</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="filter-sort">Сортировка</label>
-            <select id="filter-sort"></select>
-          </div>
-
-          <div class="form-group">
-            <label for="filter-order">Порядок</label>
-            <select id="filter-order">
-              <option value="true">По возрастанию ↑</option>
-              <option value="false">По убыванию ↓</option>
-            </select>
-          </div>
-
-          <div class="form-group flags-filter-group">
-            <label>Дополнительные флаги</label>
-            <div class="flags-filter">
-              <label class="checkbox-label">
-                <input type="checkbox" class="flag-filter" value="Vegan" />
-                <span>🌱 Веган</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" class="flag-filter" value="GlutenFree" />
-                <span>🌾 Без глютена</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" class="flag-filter" value="SugarFree" />
-                <span>🍬 Без сахара</span>
-              </label>
-            </div>
-          </div>
-
-          <div class="form-group filter-actions">
-            <button type="submit" class="btn btn-primary">Применить</button>
-            <button
-              type="button"
-              class="btn btn-secondary"
-              onclick="app.resetFilters()"
-            >
-              Сброс
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <!-- Action Bar -->
-      <div class="action-bar">
-        <h2 id="list-title">Продукты</h2>
-        <button class="btn btn-success" onclick="app.openCreateModal()">
-          <span class="btn-icon">+</span> Добавить
-        </button>
-      </div>
-
-      <!-- Data Table -->
-      <div class="card table-card">
-        <div class="table-wrapper">
-          <table id="data-table">
-            <thead>
-              <tr id="table-header-row"></tr>
-            </thead>
-            <tbody id="table-body"></tbody>
-          </table>
-        </div>
-        <div id="loading-indicator" class="loading hidden">
-          <div class="spinner"></div>
-          <span>Загрузка данных...</span>
-        </div>
-        <div id="empty-state" class="empty-state hidden">
-          <span class="empty-icon">📭</span>
-          <p>Нет данных для отображения</p>
         </div>
       </div>
     </div>
