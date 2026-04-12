@@ -11,6 +11,19 @@ public record UpdateDishDto
     
     public List<CreateIngredientDto>? Ingredients { get; init; }
     
+    /// <summary>
+    /// КБЖУ на порцию. Если указано, переопределяет автоматически рассчитанные значения.
+    /// </summary>
+    public double? CaloriesPerServing { get; init; }
+    public double? ProteinsPerServing { get; init; }
+    public double? FatsPerServing { get; init; }
+    public double? CarbsPerServing { get; init; }
+    
+    /// <summary>
+    /// Размер порции в граммах. Если указан, переопределяет сумму веса ингредиентов.
+    /// </summary>
+    public double? ServingSize { get; init; }
+    
     public ExtraFlag? Flags { get; init; }
     public DishCategory? Category { get; init; }
 }

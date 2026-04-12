@@ -235,7 +235,7 @@ public class DishServiceTests
             {
                 new Ingredient { ProductId = 1, AmountInGrams = 50 }
             },
-            CaloriesPerServing = 0,
+            CaloriesPerServing = null, // null означает "рассчитать автоматически"
             Flags = ExtraFlag.Vegan
         };
 

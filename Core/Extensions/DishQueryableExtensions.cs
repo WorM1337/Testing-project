@@ -1,6 +1,7 @@
 using Core.Models;
 using Core.Models.Enums;
 using Core.Models.Query;
+using Microsoft.EntityFrameworkCore;
 
 namespace Core.Extensions;
 
@@ -10,7 +11,7 @@ public static class DishQueryableExtensions
     {
         if (!string.IsNullOrWhiteSpace(criteria.Search))
         {
-            query = query.Where(d => d.Name.Contains(criteria.Search));
+            query = query.Where(d => EF.Functions.Like(d.Name.ToLower(), $"%{criteria.Search.ToLower()}%"));
         }
 
         if (criteria.Category.HasValue && criteria.Category != DishCategory.None)

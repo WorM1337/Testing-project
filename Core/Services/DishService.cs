@@ -31,8 +31,15 @@ public class DishService(IDishRepository dishRepository, IProductRepository prod
         // 1. Загружаем продукты одним запросом
         await LoadProductsForIngredientsAsync(dish);
 
-        // 2. Расчеты
-        CalculateNutrition(dish); // Теперь это синхронный метод, данные в памяти
+        // 2. Расчеты КБЖУ (только если пользователь не указал свои значения)
+        CalculateNutrition(dish, 
+            overrideCalories: dish.CaloriesPerServing,
+            overrideProteins: dish.ProteinsPerServing,
+            overrideFats: dish.FatsPerServing,
+            overrideCarbs: dish.CarbsPerServing,
+            overrideServingSize: dish.ServingSize);
+        
+        // 3. Установка флагов на основе ингредиентов
         SetFlagsBasedOnIngredients(dish);
 
         dish.CreatedAt = DateTime.UtcNow;
@@ -46,8 +53,15 @@ public class DishService(IDishRepository dishRepository, IProductRepository prod
         // Важно: при PATCH ингредиенты могут быть уже в dish, но без навигационного свойства Product
         await LoadProductsForIngredientsAsync(dish);
 
-        // 2. Пересчет
-        CalculateNutrition(dish);
+        // 2. Пересчет КБЖУ с учётом возможных пользовательских переопределений
+        CalculateNutrition(dish,
+            overrideCalories: dish.CaloriesPerServing,
+            overrideProteins: dish.ProteinsPerServing,
+            overrideFats: dish.FatsPerServing,
+            overrideCarbs: dish.CarbsPerServing,
+            overrideServingSize: dish.ServingSize);
+        
+        // 3. Пересчет флагов
         SetFlagsBasedOnIngredients(dish);
         
         dish.UpdatedAt = DateTime.UtcNow;
@@ -122,8 +136,14 @@ public class DishService(IDishRepository dishRepository, IProductRepository prod
 
     /// <summary>
     /// Расчет КБЖУ. Теперь синхронный, так как данные уже загружены в память.
+    /// Если пользователь указал свои значения (override), они используются вместо рассчитанных.
     /// </summary>
-    private void CalculateNutrition(Dish dish)
+    private void CalculateNutrition(Dish dish, 
+        double? overrideCalories = null, 
+        double? overrideProteins = null, 
+        double? overrideFats = null, 
+        double? overrideCarbs = null,
+        double? overrideServingSize = null)
     {
         double calories = 0, proteins = 0, fats = 0, carbs = 0;
         double totalWeight = 0;
@@ -144,11 +164,13 @@ public class DishService(IDishRepository dishRepository, IProductRepository prod
             carbs += (product.CarbsPer100g * qty) / 100;
         }
 
-        dish.CaloriesPerServing = calories;
-        dish.ProteinsPerServing = proteins;
-        dish.FatsPerServing = fats;
-        dish.CarbsPerServing = carbs;
-        dish.ServingSize = totalWeight;
+        // Используем пользовательские значения (если они были явно указаны) или рассчитанные
+        // null означает "рассчитать автоматически"
+        dish.CaloriesPerServing = overrideCalories ?? calories;
+        dish.ProteinsPerServing = overrideProteins ?? proteins;
+        dish.FatsPerServing = overrideFats ?? fats;
+        dish.CarbsPerServing = overrideCarbs ?? carbs;
+        dish.ServingSize = overrideServingSize ?? totalWeight;
     }
 
     private void SetFlagsBasedOnIngredients(Dish dish)

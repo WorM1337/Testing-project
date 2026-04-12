@@ -12,6 +12,6 @@ public record CreateProductDto
     public double CarbsPer100g { get; init; }
     public string? Composition { get; init; }
     public ProductCategory Category { get; init; }
-    public CookingRequirement CookingNeeded { get; init; }
+    public CookingRequirement CookingRequirement { get; init; }
     public ExtraFlag Flags { get; init; } = ExtraFlag.None;
 }

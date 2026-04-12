@@ -13,7 +13,7 @@ public class UpdateDishDtoValidator : AbstractValidator<UpdateDishDto>
             .When(d => !string.IsNullOrWhiteSpace(d.Name));
 
         RuleFor(d => d.Photos)
-            .Must(photos =>photos == null || photos.Count <= 5).WithMessage("Нельзя загрузить более 5 фотографий.")
+            .Must(photos => photos == null || photos.Count <= 5).WithMessage("Нельзя загрузить более 5 фотографий.")
             .When(d => d.Photos != null);
         
         RuleFor(d => d.Ingredients)
@@ -21,5 +21,26 @@ public class UpdateDishDtoValidator : AbstractValidator<UpdateDishDto>
             .When(d => d.Ingredients != null);
 
         RuleForEach(d => d.Ingredients).SetValidator(new CreateIngredientDtoValidator());
+        
+        // Валидация КБЖУ (если указано)
+        RuleFor(d => d.CaloriesPerServing)
+            .GreaterThanOrEqualTo(0).WithMessage("Калорийность не может быть отрицательной.")
+            .When(d => d.CaloriesPerServing.HasValue);
+            
+        RuleFor(d => d.ProteinsPerServing)
+            .GreaterThanOrEqualTo(0).WithMessage("Белки не могут быть отрицательными.")
+            .When(d => d.ProteinsPerServing.HasValue);
+            
+        RuleFor(d => d.FatsPerServing)
+            .GreaterThanOrEqualTo(0).WithMessage("Жиры не могут быть отрицательными.")
+            .When(d => d.FatsPerServing.HasValue);
+            
+        RuleFor(d => d.CarbsPerServing)
+            .GreaterThanOrEqualTo(0).WithMessage("Углеводы не могут быть отрицательными.")
+            .When(d => d.CarbsPerServing.HasValue);
+            
+        RuleFor(d => d.ServingSize)
+            .GreaterThan(0).WithMessage("Размер порции должен быть больше 0.")
+            .When(d => d.ServingSize.HasValue);
     }
 }

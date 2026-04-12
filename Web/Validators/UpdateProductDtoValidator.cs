@@ -13,7 +13,7 @@ public class UpdateProductDtoValidator : AbstractValidator<UpdateProductDto>
             .When(p => p.Name != null);
 
         RuleFor(p => p.Photos)
-            .Must(photos => photos.Count <= 5).WithMessage("Нельзя загрузить более 5 фотографий.")
+            .Must(photos => photos == null || photos.Count <= 5).WithMessage("Нельзя загрузить более 5 фотографий.")
             .When(p => p.Photos != null);
 
         RuleFor(p => p.CaloriesPer100g)
@@ -33,7 +33,6 @@ public class UpdateProductDtoValidator : AbstractValidator<UpdateProductDto>
             .When(p => p.CarbsPer100g != null);
         
         RuleFor(p => p.CookingRequirement)
-            .IsInEnum().WithMessage("Некорректное значение необходимости готовки.")
-            .When(p => p.CookingRequirement != null);
+            .IsInEnum().WithMessage("Требования к готовке обязательны и должны быть корректным значением.");
     }
 }

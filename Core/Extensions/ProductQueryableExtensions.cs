@@ -1,6 +1,7 @@
 using Core.Models;
 using Core.Models.Enums;
 using Core.Models.Query;
+using Microsoft.EntityFrameworkCore;
 
 namespace Core.Extensions;
 
@@ -13,7 +14,7 @@ public static class ProductQueryableExtensions
     {
         if (!string.IsNullOrWhiteSpace(criteria.Search))
         {
-            query = query.Where(p => p.Name.Contains(criteria.Search));
+            query = query.Where(p => EF.Functions.Like(p.Name.ToLower(), $"%{criteria.Search.ToLower()}%"));
         }
 
         if (criteria.Category.HasValue)
