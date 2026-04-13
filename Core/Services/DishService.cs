@@ -31,19 +31,17 @@ public class DishService(IDishRepository dishRepository, IProductRepository prod
         // 1. Загружаем продукты одним запросом
         await LoadProductsForIngredientsAsync(dish);
 
-        // 1.5. Валидация флагов: нельзя установить флаг, если не все ингредиенты его имеют
+        // 2. Валидация флагов: нельзя установить флаг, если не все ингредиенты его имеют
+        // Флаги устанавливаются пользователем, мы только валидируем
         ValidateFlags(dish);
 
-        // 2. Расчеты КБЖУ (только если пользователь не указал свои значения)
+        // 3. Расчеты КБЖУ (только если пользователь не указал свои значения)
         CalculateNutrition(dish, 
             overrideCalories: dish.CaloriesPerServing,
             overrideProteins: dish.ProteinsPerServing,
             overrideFats: dish.FatsPerServing,
             overrideCarbs: dish.CarbsPerServing,
             overrideServingSize: dish.ServingSize);
-        
-        // 3. Установка флагов на основе ингредиентов
-        SetFlagsBasedOnIngredients(dish);
 
         dish.CreatedAt = DateTime.UtcNow;
 
@@ -67,17 +65,18 @@ public class DishService(IDishRepository dishRepository, IProductRepository prod
         // 1. Сначала подгружаем продукты, если ингредиенты изменились или их нет в памяти
         await LoadProductsForIngredientsAsync(dish);
 
-        // 2. Пересчет КБЖУ с учётом возможных пользовательских переопределений
+        // 2. Пересчет флагов: при изменении состава автоматически снимаем недопустимые флаги
+        // Флаги устанавливаются пользователем, но при изменении состава недопустимые снимаются
+        RecalculateFlags(dish);
+
+        // 3. Пересчет КБЖУ с учётом возможных пользовательских переопределений
         CalculateNutrition(dish,
             overrideCalories: dish.CaloriesPerServing,
             overrideProteins: dish.ProteinsPerServing,
             overrideFats: dish.FatsPerServing,
             overrideCarbs: dish.CarbsPerServing,
             overrideServingSize: dish.ServingSize);
-        
-        // 3. Пересчет флагов
-        SetFlagsBasedOnIngredients(dish);
-        
+
         dish.UpdatedAt = DateTime.UtcNow;
 
         await dishRepository.UpdateAsync(dish);
@@ -190,6 +189,7 @@ public class DishService(IDishRepository dishRepository, IProductRepository prod
     /// <summary>
     /// Валидация флагов: проверяет, что пользователь не пытается установить флаг,
     /// который не поддерживается всеми ингредиентами.
+    /// Используется при создании блюда.
     /// </summary>
     private void ValidateFlags(Dish dish)
     {
@@ -248,24 +248,43 @@ public class DishService(IDishRepository dishRepository, IProductRepository prod
         }
     }
 
-    private void SetFlagsBasedOnIngredients(Dish dish)
+    /// <summary>
+    /// Пересчет флагов: автоматически снимает недопустимые флаги при изменении состава.
+    /// Используется при обновлении блюда.
+    /// </summary>
+    private void RecalculateFlags(Dish dish)
     {
-        if (dish.Ingredients.Any(i => i.Product == null))
-            throw new InvalidOperationException("Нельзя установить флаги: не все продукты загружены.");
+        // Если флаги не установлены, нечего пересчитывать
+        if (dish.Flags == ExtraFlag.None)
+            return;
 
-        // Флаг "Веган"
-        var allVegan = dish.Ingredients.All(i => i.Product.Flags.HasFlag(ExtraFlag.Vegan));
-        if (allVegan) dish.Flags |= ExtraFlag.Vegan; // Используем побитовое ИЛИ
-        else dish.Flags &= ~ExtraFlag.Vegan; // Снимаем флаг
+        // Проверяем каждый установленный флаг и снимаем недопустимые
+        if (dish.Flags.HasFlag(ExtraFlag.Vegan))
+        {
+            var allVegan = dish.Ingredients.All(i => i.Product.Flags.HasFlag(ExtraFlag.Vegan));
+            if (!allVegan)
+            {
+                dish.Flags &= ~ExtraFlag.Vegan; // Снимаем флаг
+            }
+        }
 
-        // Флаг "Без глютена"
-        var allGlutenFree = dish.Ingredients.All(i => i.Product.Flags.HasFlag(ExtraFlag.GlutenFree));
-        if (allGlutenFree) dish.Flags |= ExtraFlag.GlutenFree;
-        else dish.Flags &= ~ExtraFlag.GlutenFree;
+        if (dish.Flags.HasFlag(ExtraFlag.GlutenFree))
+        {
+            var allGlutenFree = dish.Ingredients.All(i => i.Product.Flags.HasFlag(ExtraFlag.GlutenFree));
+            if (!allGlutenFree)
+            {
+                dish.Flags &= ~ExtraFlag.GlutenFree; // Снимаем флаг
+            }
+        }
 
-        // Флаг "Без сахара"
-        var allSugarFree = dish.Ingredients.All(i => i.Product.Flags.HasFlag(ExtraFlag.SugarFree));
-        if (allSugarFree) dish.Flags |= ExtraFlag.SugarFree;
-        else dish.Flags &= ~ExtraFlag.SugarFree;
+        if (dish.Flags.HasFlag(ExtraFlag.SugarFree))
+        {
+            var allSugarFree = dish.Ingredients.All(i => i.Product.Flags.HasFlag(ExtraFlag.SugarFree));
+            if (!allSugarFree)
+            {
+                dish.Flags &= ~ExtraFlag.SugarFree; // Снимаем флаг
+            }
+        }
     }
+
 }

@@ -81,33 +81,16 @@ public class DishServiceTests
     #region Тесты Флагов
 
     /// <summary>
-    /// Проверяем логику флагов на представителях разных классов эквивалентности.
+    /// Проверяем, что флаг "Веган" валидируется правильно, когда все продукты веганские.
     /// </summary>
-    [Theory]
-    [InlineData(true, true, true)] 
-    [InlineData(true, false, false)] 
-    [InlineData(false, true, false)] 
-    [InlineData(false, false, false)] 
-    public async Task CreateDishAsync_SetsFlags_EquivalenceClasses(
-        bool firstIsVegan, 
-        bool secondIsVegan, 
-        bool expectedHasVeganFlag)
+    [Fact]
+    public async Task CreateDishAsync_ValidatesVeganFlag_AllProductsVegan()
     {
         // Arrange
         var products = new List<Product>
         {
-            new Product 
-            { 
-                Id = 1, 
-                Name = "Product 1", 
-                Flags = firstIsVegan ? ExtraFlag.Vegan : ExtraFlag.None 
-            },
-            new Product 
-            { 
-                Id = 2, 
-                Name = "Product 2", 
-                Flags = secondIsVegan ? ExtraFlag.Vegan : ExtraFlag.None 
-            }
+            new Product { Id = 1, Name = "Product 1", Flags = ExtraFlag.Vegan },
+            new Product { Id = 2, Name = "Product 2", Flags = ExtraFlag.Vegan }
         };
 
         _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
@@ -115,8 +98,8 @@ public class DishServiceTests
 
         var dish = new Dish
         {
-            Name = "Test Dish",
-            Flags = ExtraFlag.None,
+            Name = "Vegan Dish",
+            Flags = ExtraFlag.Vegan, // Пользователь установил флаг
             Ingredients = new List<Ingredient>
             {
                 new Ingredient { ProductId = 1, AmountInGrams = 100 },
@@ -131,14 +114,45 @@ public class DishServiceTests
         var result = await _dishService.CreateDishAsync(dish);
 
         // Assert
-        if (expectedHasVeganFlag)
+        result.Flags.Should().HaveFlag(ExtraFlag.Vegan); // Флаг сохранился
+    }
+
+    /// <summary>
+    /// Проверяем, что флаг "Веган" не может быть установлен, если не все продукты веганские.
+    /// </summary>
+    [Fact]
+    public async Task CreateDishAsync_Throws_WhenVeganFlagButNonVeganProducts()
+    {
+        // Arrange
+        var products = new List<Product>
         {
-            result.Flags.Should().HaveFlag(ExtraFlag.Vegan);
-        }
-        else
+            new Product { Id = 1, Name = "Vegan Product", Flags = ExtraFlag.Vegan },
+            new Product { Id = 2, Name = "Meat Product", Flags = ExtraFlag.None }
+        };
+
+        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
+            .ReturnsAsync(products);
+
+        var dish = new Dish
         {
-            result.Flags.Should().NotHaveFlag(ExtraFlag.Vegan);
-        }
+            Name = "Not Vegan Dish",
+            Flags = ExtraFlag.Vegan, // Пользователь пытается установить флаг
+            Ingredients = new List<Ingredient>
+            {
+                new Ingredient { ProductId = 1, AmountInGrams = 100 },
+                new Ingredient { ProductId = 2, AmountInGrams = 100 }
+            }
+        };
+
+        _dishRepository.Setup(r => r.CreateAsync(It.IsAny<Dish>()))
+            .ReturnsAsync((Dish d) => d);
+
+        // Act
+        var action = () => _dishService.CreateDishAsync(dish);
+
+        // Assert
+        await action.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Веган*");
     }
 
     #endregion
@@ -300,7 +314,7 @@ public class DishServiceTests
                 new Ingredient { ProductId = 1, AmountInGrams = 50 }
             },
             CaloriesPerServing = null, // null означает "рассчитать автоматически"
-            Flags = ExtraFlag.Vegan
+            Flags = ExtraFlag.None // Флаги не установлены (пользователь не указал)
         };
 
         _dishRepository.Setup(r => r.UpdateAsync(It.IsAny<Dish>()))
@@ -311,9 +325,84 @@ public class DishServiceTests
 
         // Assert
         result.CaloriesPerServing.Should().BeApproximately(200.0, 0.01);
-        result.Flags.Should().NotHaveFlag(ExtraFlag.Vegan);
+        // Флаги остаются как установил пользователь (в данном случае None)
+        result.Flags.Should().Be(ExtraFlag.None);
         
         _dishRepository.Verify(r => r.UpdateAsync(dish), Times.Once);
+    }
+
+    /// <summary>
+    /// Проверяем, что при обновлении флаг "Веган" сохраняется, если все продукты веганские.
+    /// </summary>
+    [Fact]
+    public async Task UpdateDishAsync_RecalculatesFlags_AllProductsVegan()
+    {
+        // Arrange
+        var products = new List<Product>
+        {
+            new Product { Id = 1, Name = "Vegan Product", Flags = ExtraFlag.Vegan }
+        };
+
+        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
+            .ReturnsAsync(products);
+
+        var dish = new Dish
+        {
+            Id = 1,
+            Name = "Vegan Dish",
+            Ingredients = new List<Ingredient>
+            {
+                new Ingredient { ProductId = 1, AmountInGrams = 100 }
+            },
+            Flags = ExtraFlag.Vegan // Пользователь установил флаг
+        };
+
+        _dishRepository.Setup(r => r.UpdateAsync(It.IsAny<Dish>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _dishService.UpdateDishAsync(dish, categoryWasExplicitlySet: false);
+
+        // Assert
+        result.Flags.Should().HaveFlag(ExtraFlag.Vegan); // Флаг сохранился
+    }
+
+    /// <summary>
+    /// Проверяем, что при обновлении флаг "Веган" автоматически снимается, если продукты не веганские.
+    /// </summary>
+    [Fact]
+    public async Task UpdateDishAsync_RecalculatesFlags_RemovesInvalidVeganFlag()
+    {
+        // Arrange
+        var products = new List<Product>
+        {
+            new Product { Id = 1, Name = "Vegan Product", Flags = ExtraFlag.Vegan },
+            new Product { Id = 2, Name = "Meat Product", Flags = ExtraFlag.None }
+        };
+
+        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
+            .ReturnsAsync(products);
+
+        var dish = new Dish
+        {
+            Id = 1,
+            Name = "Was Vegan Dish",
+            Ingredients = new List<Ingredient>
+            {
+                new Ingredient { ProductId = 1, AmountInGrams = 100 },
+                new Ingredient { ProductId = 2, AmountInGrams = 100 }
+            },
+            Flags = ExtraFlag.Vegan // Ранее был установлен флаг
+        };
+
+        _dishRepository.Setup(r => r.UpdateAsync(It.IsAny<Dish>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _dishService.UpdateDishAsync(dish, categoryWasExplicitlySet: false);
+
+        // Assert
+        result.Flags.Should().NotHaveFlag(ExtraFlag.Vegan); // Флаг снят автоматически
     }
 
     /// <summary>
