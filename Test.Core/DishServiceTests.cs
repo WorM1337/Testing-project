@@ -208,6 +208,70 @@ public class DishServiceTests
         result.Name.Should().Be(expectedCleanName);
     }
 
+    /// <summary>
+    /// Проверяем, что при нескольких макросах применяется только первый, а все макросы удаляются.
+    /// </summary>
+    [Theory]
+    [InlineData("!десерт !суп Cake", DishCategory.Dessert, "Cake")]
+    [InlineData("!салат !десерт !перекус Salad Bowl", DishCategory.Salad, "Salad Bowl")]
+    [InlineData("!напиток !второе !десерт Tea", DishCategory.Drink, "Tea")]
+    [InlineData("!перекус!десерт Snack", DishCategory.Snack, "Snack")]
+    public async Task CreateDishAsync_MultipleMacros_UsesFirstAndRemovesAll(
+        string inputName,
+        DishCategory expectedCategory,
+        string expectedCleanName)
+    {
+        // Arrange
+        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
+            .ReturnsAsync(new List<Product>());
+
+        var dish = new Dish
+        {
+            Name = inputName,
+            Category = DishCategory.None,
+            Ingredients = new List<Ingredient>()
+        };
+
+        _dishRepository.Setup(r => r.CreateAsync(It.IsAny<Dish>()))
+            .ReturnsAsync((Dish d) => d);
+
+        // Act
+        var result = await _dishService.CreateDishAsync(dish);
+
+        // Assert
+        result.Category.Should().Be(expectedCategory);
+        result.Name.Should().Be(expectedCleanName);
+    }
+
+    /// <summary>
+    /// Проверяем, что выбрасывается исключение, если название слишком короткое после удаления макросов.
+    /// </summary>
+    [Theory]
+    [InlineData("!десерт A")]
+    [InlineData("!суп X")]
+    [InlineData("!салат !десерт Q")]
+    public async Task CreateDishAsync_Throws_WhenNameTooShortAfterMacros(string inputName)
+    {
+        // Arrange
+        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
+            .ReturnsAsync(new List<Product>());
+
+        var dish = new Dish
+        {
+            Name = inputName,
+            Category = DishCategory.None,
+            Ingredients = new List<Ingredient>()
+        };
+
+        _dishRepository.Setup(r => r.CreateAsync(It.IsAny<Dish>()))
+            .ReturnsAsync((Dish d) => d);
+
+        // Act & Assert
+        var act = async () => await _dishService.CreateDishAsync(dish);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*слишком короткое*");
+    }
+
     #endregion
 
     #region Тесты Обновления
@@ -243,13 +307,77 @@ public class DishServiceTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _dishService.UpdateDishAsync(dish);
+        var result = await _dishService.UpdateDishAsync(dish, categoryWasExplicitlySet: false);
 
         // Assert
         result.CaloriesPerServing.Should().BeApproximately(200.0, 0.01);
         result.Flags.Should().NotHaveFlag(ExtraFlag.Vegan);
         
         _dishRepository.Verify(r => r.UpdateAsync(dish), Times.Once);
+    }
+
+    /// <summary>
+    /// Проверяем, что макросы работают при обновлении блюда
+    /// </summary>
+    [Theory]
+    [InlineData("!десерт Cake", DishCategory.Dessert, "Cake")]
+    [InlineData("!суп Borscht", DishCategory.Soup, "Borscht")]
+    [InlineData("!салат !десерт Salad", DishCategory.Salad, "Salad")]
+    public async Task UpdateDishAsync_ParseMacros_UpdatesCategory(
+        string inputName,
+        DishCategory expectedCategory,
+        string expectedCleanName)
+    {
+        // Arrange
+        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
+            .ReturnsAsync(new List<Product>());
+
+        var dish = new Dish
+        {
+            Id = 1,
+            Name = inputName,
+            Category = DishCategory.None,
+            Ingredients = new List<Ingredient>()
+        };
+
+        _dishRepository.Setup(r => r.UpdateAsync(It.IsAny<Dish>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _dishService.UpdateDishAsync(dish, categoryWasExplicitlySet: false);
+
+        // Assert
+        result.Category.Should().Be(expectedCategory);
+        result.Name.Should().Be(expectedCleanName);
+    }
+
+    /// <summary>
+    /// Проверяем, что при явном указании категории макросы не переопределяют её
+    /// </summary>
+    [Fact]
+    public async Task UpdateDishAsync_ExplicitCategory_TakesPrecedenceOverMacros()
+    {
+        // Arrange
+        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
+            .ReturnsAsync(new List<Product>());
+
+        var dish = new Dish
+        {
+            Id = 1,
+            Name = "!десерт Soup",
+            Category = DishCategory.Soup, // Явно установлена категория
+            Ingredients = new List<Ingredient>()
+        };
+
+        _dishRepository.Setup(r => r.UpdateAsync(It.IsAny<Dish>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _dishService.UpdateDishAsync(dish, categoryWasExplicitlySet: true);
+
+        // Assert
+        result.Category.Should().Be(DishCategory.Soup); // Остаётся Soup, а не Dessert
+        result.Name.Should().Be("Soup");
     }
 
     #endregion

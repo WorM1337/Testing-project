@@ -1,6 +1,7 @@
 using FluentValidation;
 using Testing_project.Dtos.Dish;
 using Core.Models.Enums;
+using Core.Utils;
 
 namespace Testing_project.Validators;
 
@@ -10,7 +11,20 @@ public class CreateDishDtoValidator : AbstractValidator<CreateDishDto>
     {
         RuleFor(d => d.Name)
             .NotEmpty().WithMessage("Название блюда обязательно.")
-            .MinimumLength(2).WithMessage("Минимальная длина названия — 2 символа.");
+            .MinimumLength(2).WithMessage("Минимальная длина названия — 2 символа.")
+            .Must(name =>
+            {
+                // Проверяем, что после удаления макросов название будет не короче 2 символов
+                try
+                {
+                    var (_, cleanName) = DishCategoryParser.Parse(name);
+                    return cleanName.Length >= 2;
+                }
+                catch
+                {
+                    return false;
+                }
+            }).WithMessage("Название блюда слишком короткое после удаления макросов (минимум 2 символа).");
 
         RuleFor(d => d.Photos)
             .Must(photos => photos == null || photos.Count <= 5).WithMessage("Нельзя загрузить более 5 фотографий.");

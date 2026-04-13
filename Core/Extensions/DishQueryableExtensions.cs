@@ -51,6 +51,10 @@ public static class DishQueryableExtensions
                 ? query.OrderBy(d => d.Category) 
                 : query.OrderByDescending(d => d.Category),
                 
+            DishSortOption.CreatedAt => ascending 
+                ? query.OrderBy(d => d.CreatedAt) 
+                : query.OrderByDescending(d => d.CreatedAt),
+                
             _ => ascending 
                 ? query.OrderBy(d => d.Name) 
                 : query.OrderByDescending(d => d.Name)

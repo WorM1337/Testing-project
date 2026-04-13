@@ -2,8 +2,6 @@ using AutoMapper;
 using Core.Models;
 using Testing_project.Dtos.Dish;
 using Testing_project.Dtos.Ingredient;
-// Подключите ваш маппер, если нужно мапить Ingredients, или делайте это вручную
-// Обычно для вложенных коллекций лучше использовать IMapper или ручной цикл
 
 public static class DishExtensions
 {
@@ -21,6 +19,23 @@ public static class DishExtensions
         if (dto.Flags.HasValue)
             dish.Flags = dto.Flags.Value;
 
+        // КБЖУ - пользовательские переопределения
+        // Если пользователь указал значения, они сохраняются и будут использованы сервисом
+        if (dto.CaloriesPerServing.HasValue)
+            dish.CaloriesPerServing = dto.CaloriesPerServing.Value;
+
+        if (dto.ProteinsPerServing.HasValue)
+            dish.ProteinsPerServing = dto.ProteinsPerServing.Value;
+
+        if (dto.FatsPerServing.HasValue)
+            dish.FatsPerServing = dto.FatsPerServing.Value;
+
+        if (dto.CarbsPerServing.HasValue)
+            dish.CarbsPerServing = dto.CarbsPerServing.Value;
+
+        if (dto.ServingSize.HasValue)
+            dish.ServingSize = dto.ServingSize.Value;
+
         // Логика для ингредиентов:
         // Если клиент прислал список (даже пустой) — мы полностью заменяем состав
         if (dto.Ingredients != null)
@@ -29,8 +44,6 @@ public static class DishExtensions
             var newIngredients = dto.Ingredients.Select(i => mapper.Map<Ingredient>(i)).ToList();
             
             // Очищаем текущий список и добавляем новый
-            // Важно: если у вас Ingredients это навигационное свойство EF Core, 
-            // лучше не создавать новый список, а обновить существующий, чтобы трекинг не сломался.
             dish.Ingredients.Clear();
             foreach (var ingredient in newIngredients)
             {

@@ -17,8 +17,9 @@ public static class DishCategoryParser
     };
 
     /// <summary>
-    /// Ищет первый макрос в названии блюда и удаляет его.
-    /// Если макросов несколько, применяется только первый найденный (слева направо).
+    /// Ищет все макросы в названии блюда и удаляет их.
+    /// Если макросов несколько, применяется только первый найденный (слева направо), остальные игнорируются.
+    /// Все макросы удаляются из названия.
     /// </summary>
     public static (DishCategory? Category, string CleanName) Parse(string name)
     {
@@ -28,12 +29,14 @@ public static class DishCategoryParser
         // Ищем все макросы в названии (регистронезависимо)
         var foundMacros = new List<(int Index, string Macro, DishCategory Category)>();
         
-        foreach (var (macro, category) in Macros)
+        foreach (var (macro, macroCategory) in Macros)
         {
-            var index = name.IndexOf(macro, StringComparison.OrdinalIgnoreCase);
-            if (index >= 0)
+            // Ищем все вхождения макроса (может быть несколько одинаковых)
+            int startIndex = 0;
+            while ((startIndex = name.IndexOf(macro, startIndex, StringComparison.OrdinalIgnoreCase)) >= 0)
             {
-                foundMacros.Add((index, macro, category));
+                foundMacros.Add((startIndex, macro, macroCategory));
+                startIndex += macro.Length;
             }
         }
 
@@ -42,15 +45,30 @@ public static class DishCategoryParser
             return (null, name);
         }
 
-        // Берём первый найденный макрос (с наименьшим индексом)
-        var firstMacro = foundMacros.OrderBy(m => m.Index).First();
+        // Сортируем по индексу (порядок появления в названии)
+        var sortedMacros = foundMacros.OrderBy(m => m.Index).ToList();
         
-        // Удаляем макрос из названия
-        var cleanName = name.Remove(firstMacro.Index, firstMacro.Macro.Length);
+        // Берём первый макрос для определения категории
+        var firstMacro = sortedMacros.First();
+        var category = firstMacro.Category;
+        
+        // Удаляем ВСЕ макросы из названия (начиная с конца, чтобы индексы не сдвигались)
+        var cleanName = name;
+        foreach (var macro in sortedMacros.OrderByDescending(m => m.Index))
+        {
+            cleanName = cleanName.Remove(macro.Index, macro.Macro.Length);
+        }
         
         // Удаляем лишние пробелы, которые могли образоваться
         cleanName = Regex.Replace(cleanName, @"\s+", " ").Trim();
         
-        return (firstMacro.Category, cleanName);
+        // Проверяем, что название не короче 2 символов после удаления макросов
+        if (cleanName.Length < 2)
+        {
+            throw new InvalidOperationException(
+                $"Название блюда слишком короткое после удаления макросов (минимум 2 символа). Текущее название: '{cleanName}'");
+        }
+        
+        return (category, cleanName);
     }
 }

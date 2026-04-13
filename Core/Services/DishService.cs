@@ -50,10 +50,21 @@ public class DishService(IDishRepository dishRepository, IProductRepository prod
         return await dishRepository.CreateAsync(dish);
     }
 
-    public async Task<Dish> UpdateDishAsync(Dish dish)
+    public async Task<Dish> UpdateDishAsync(Dish dish, bool categoryWasExplicitlySet = false)
     {
+        // 0. Обработка макросов в названии (аналогично CreateDishAsync)
+        var (macroCategory, cleanName) = DishCategoryParser.Parse(dish.Name);
+        dish.Name = cleanName;
+
+        // Если категория не была явно установлена через форму, используем макрос
+        // Если категория была явно установлена (categoryWasExplicitlySet = true), оставляем её
+        // Если макросов нет и категория не была установлена явно — оставляем текущую категорию блюда
+        if (!categoryWasExplicitlySet && macroCategory.HasValue)
+        {
+            dish.Category = macroCategory.Value;
+        }
+
         // 1. Сначала подгружаем продукты, если ингредиенты изменились или их нет в памяти
-        // Важно: при PATCH ингредиенты могут быть уже в dish, но без навигационного свойства Product
         await LoadProductsForIngredientsAsync(dish);
 
         // 2. Пересчет КБЖУ с учётом возможных пользовательских переопределений

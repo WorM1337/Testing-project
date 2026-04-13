@@ -17,5 +17,6 @@ public enum DishSortOption
     Proteins,
     Fats,
     Carbs,
-    Category
+    Category,
+    CreatedAt
 }

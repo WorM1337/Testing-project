@@ -19,6 +19,64 @@
           <input type="hidden" id="edit-id" />
           <div id="modal-fields" class="form-grid"></div>
 
+          <!-- Nutrition Calculation Section (for dishes only) -->
+          <div
+            id="nutrition-calculation-container"
+            class="nutrition-section hidden"
+          >
+            <h4>📊 Расчет КБЖУ на порцию</h4>
+            <div class="nutrition-calculation-grid">
+              <div class="form-group">
+                <label for="calc-calories">Ккал (расчет)</label>
+                <input
+                  type="number"
+                  id="calc-calories"
+                  class="form-control"
+                  step="0.01"
+                  min="0"
+                  readonly
+                />
+              </div>
+              <div class="form-group">
+                <label for="calc-proteins">Белки, г (расчет)</label>
+                <input
+                  type="number"
+                  id="calc-proteins"
+                  class="form-control"
+                  step="0.01"
+                  min="0"
+                  readonly
+                />
+              </div>
+              <div class="form-group">
+                <label for="calc-fats">Жиры, г (расчет)</label>
+                <input
+                  type="number"
+                  id="calc-fats"
+                  class="form-control"
+                  step="0.01"
+                  min="0"
+                  readonly
+                />
+              </div>
+              <div class="form-group">
+                <label for="calc-carbs">Углеводы, г (расчет)</label>
+                <input
+                  type="number"
+                  id="calc-carbs"
+                  class="form-control"
+                  step="0.01"
+                  min="0"
+                  readonly
+                />
+              </div>
+            </div>
+            <p class="nutrition-info">
+              💡 Значения рассчитываются автоматически на основе состава блюда.
+              Для изменения введите нужные значения в поля формы выше.
+            </p>
+          </div>
+
           <!-- Ingredients Section (for dishes only) -->
           <div id="ingredients-container" class="ingredients-section hidden">
             <h4>📋 Ингредиенты</h4>
@@ -260,5 +318,13 @@
     <script src="js/utils.js"></script>
     <script src="js/components.js"></script>
     <script src="js/app.js"></script>
+    <script>
+      // Recalculate nutrition when ingredient amount changes
+      document.addEventListener("input", function (e) {
+        if (e.target.classList.contains("ing-amount")) {
+          app.calculateNutrition();
+        }
+      });
+    </script>
   </body>
 </html>

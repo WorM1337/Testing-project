@@ -48,10 +48,10 @@ const app = {
           type: "category",
           categoryType: "ProductCategory",
         },
-        { key: "caloriesPer100g", label: "Ккал/100г" },
-        { key: "proteinsPer100g", label: "Белки" },
-        { key: "fatsPer100g", label: "Жиры" },
-        { key: "carbsPer100g", label: "Углеводы" },
+        { key: "caloriesPer100g", label: "Ккал / 100 г" },
+        { key: "proteinsPer100g", label: "Белки, г / 100 г" },
+        { key: "fatsPer100g", label: "Жиры, г / 100 г" },
+        { key: "carbsPer100g", label: "Углеводы, г / 100 г" },
         { key: "flags", label: "Флаги", type: "flags" },
       ],
       fields: [
@@ -149,6 +149,7 @@ const app = {
         { val: "Fats", label: "Жиры" },
         { val: "Carbs", label: "Углеводы" },
         { val: "Category", label: "Категория" },
+        { val: "CreatedAt", label: "Дата создания" },
       ],
       columns: [
         { key: "id", label: "ID" },
@@ -159,7 +160,7 @@ const app = {
           type: "category",
           categoryType: "DishCategory",
         },
-        { key: "caloriesPerServing", label: "Ккал/порция" },
+        { key: "caloriesPerServing", label: "Ккал / порция" },
         { key: "servingSize", label: "Вес (г)" },
         { key: "flags", label: "Флаги", type: "flags" },
       ],
@@ -186,39 +187,39 @@ const app = {
           itemLabel: "URL",
         },
         {
-          name: "caloriesPerServing",
-          label: "Ккал на порцию",
+          name: "servingSize",
+          label: "Размер порции (г)",
           type: "number",
-          step: "0.1",
+          step: "0.01",
+          min: 0.01,
+        },
+        {
+          name: "caloriesPerServing",
+          label: "Ккал на порцию (расчетное)",
+          type: "number",
+          step: "0.01",
           min: 0,
         },
         {
           name: "proteinsPerServing",
-          label: "Белки (г)",
+          label: "Белки (г) на порцию (расчетное)",
           type: "number",
-          step: "0.1",
+          step: "0.01",
           min: 0,
         },
         {
           name: "fatsPerServing",
-          label: "Жиры (г)",
+          label: "Жиры (г) на порцию (расчетное)",
           type: "number",
-          step: "0.1",
+          step: "0.01",
           min: 0,
         },
         {
           name: "carbsPerServing",
-          label: "Углеводы (г)",
+          label: "Углеводы (г) на порцию (расчетное)",
           type: "number",
-          step: "0.1",
+          step: "0.01",
           min: 0,
-        },
-        {
-          name: "servingSize",
-          label: "Размер порции (г)",
-          type: "number",
-          step: "1",
-          min: 1,
         },
         {
           name: "flags",
@@ -281,11 +282,9 @@ const app = {
 
     // Populate sort dropdown
     const sortSelect = document.getElementById("filter-sort");
-    sortSelect.innerHTML =
-      '<option value="">Сортировка</option>' +
-      config.sortOptions
-        .map((s) => `<option value="${s.val}">${s.label}</option>`)
-        .join("");
+    sortSelect.innerHTML = config.sortOptions
+      .map((s) => `<option value="${s.val}">${s.label}</option>`)
+      .join("");
 
     // Load data
     await this.loadData();
@@ -451,15 +450,22 @@ const app = {
       config,
     );
 
-    // Show/hide ingredients section
+    // Show/hide ingredients and nutrition calculation sections (for dishes only)
     const ingContainer = document.getElementById("ingredients-container");
+    const nutritionContainer = document.getElementById(
+      "nutrition-calculation-container",
+    );
     if (config.hasIngredients) {
       ingContainer.classList.remove("hidden");
+      nutritionContainer.classList.remove("hidden");
       document.getElementById("ingredients-list").innerHTML = "";
       this.selectedIngredients.clear();
       this.updateIngredientSelect();
+      // Reset nutrition display values
+      this.calculateNutrition();
     } else {
       ingContainer.classList.add("hidden");
+      nutritionContainer.classList.add("hidden");
     }
 
     document.getElementById("entity-modal").classList.add("active");
@@ -546,10 +552,14 @@ const app = {
         formData.flags = fullItem.flags.filter((f) => f !== "None").join(",");
       }
 
-      // Show/hide ingredients section
+      // Show/hide ingredients and nutrition calculation sections (for dishes only)
       const ingContainer = document.getElementById("ingredients-container");
+      const nutritionContainer = document.getElementById(
+        "nutrition-calculation-container",
+      );
       if (config.hasIngredients && fullItem.ingredients) {
         ingContainer.classList.remove("hidden");
+        nutritionContainer.classList.remove("hidden");
         const ingList = document.getElementById("ingredients-list");
         ingList.innerHTML = "";
         this.selectedIngredients.clear();
@@ -565,8 +575,11 @@ const app = {
         });
 
         this.updateIngredientSelect();
+        // Calculate nutrition for edit mode
+        this.calculateNutrition();
       } else {
         ingContainer.classList.add("hidden");
+        nutritionContainer.classList.add("hidden");
       }
 
       document.getElementById("entity-modal").classList.add("active");
@@ -710,6 +723,57 @@ const app = {
   },
 
   /**
+   * Calculate nutrition based on ingredients and update both readonly display fields and form fields
+   */
+  calculateNutrition() {
+    let calories = 0;
+    let proteins = 0;
+    let fats = 0;
+    let carbs = 0;
+    let totalWeight = 0;
+
+    document
+      .querySelectorAll("#ingredients-list .ingredient-item")
+      .forEach((row) => {
+        const productId = parseInt(row.querySelector(".ing-product-id").value);
+        const amount = parseFloat(row.querySelector(".ing-amount").value) || 0;
+
+        const product = this.products.find((p) => p.id === productId);
+        if (product) {
+          calories += (product.caloriesPer100g * amount) / 100;
+          proteins += (product.proteinsPer100g * amount) / 100;
+          fats += (product.fatsPer100g * amount) / 100;
+          carbs += (product.carbsPer100g * amount) / 100;
+          totalWeight += amount;
+        }
+      });
+
+    // Update readonly display fields (calc-*) - for user reference
+    const calcCalories = document.getElementById("calc-calories");
+    const calcProteins = document.getElementById("calc-proteins");
+    const calcFats = document.getElementById("calc-fats");
+    const calcCarbs = document.getElementById("calc-carbs");
+
+    if (calcCalories) calcCalories.value = calories.toFixed(2);
+    if (calcProteins) calcProteins.value = proteins.toFixed(2);
+    if (calcFats) calcFats.value = fats.toFixed(2);
+    if (calcCarbs) calcCarbs.value = carbs.toFixed(2);
+
+    // Update form fields (field-*) - these will be submitted to server
+    const formCalories = document.getElementById("field-caloriesPerServing");
+    const formProteins = document.getElementById("field-proteinsPerServing");
+    const formFats = document.getElementById("field-fatsPerServing");
+    const formCarbs = document.getElementById("field-carbsPerServing");
+    const formServingSize = document.getElementById("field-servingSize");
+
+    if (formCalories) formCalories.value = calories.toFixed(2);
+    if (formProteins) formProteins.value = proteins.toFixed(2);
+    if (formFats) formFats.value = fats.toFixed(2);
+    if (formCarbs) formCarbs.value = carbs.toFixed(2);
+    if (formServingSize) formServingSize.value = totalWeight.toFixed(2);
+  },
+
+  /**
    * Add ingredient row
    */
   addIngredientRow(productId, productName, amount = "") {
@@ -720,13 +784,16 @@ const app = {
 
     div.innerHTML = `
       <span class="product-name">${utils.escapeHtml(productName)}</span>
-      <span class="product-amount">${amount ? `${utils.formatNumber(amount, 0)} г` : ""}</span>
+      <span class="product-amount">${amount ? `${utils.formatNumber(amount, 2)} г` : ""}</span>
       <input type="hidden" class="ing-product-id" value="${productId}">
       <input type="hidden" class="ing-amount" value="${amount}">
       <button type="button" class="btn btn-danger btn-sm" onclick="app.removeIngredient(this)">✕</button>
     `;
 
     container.appendChild(div);
+
+    // Recalculate nutrition after adding ingredient
+    this.calculateNutrition();
   },
 
   /**
@@ -769,6 +836,8 @@ const app = {
     this.selectedIngredients.delete(productId);
     row.remove();
     this.updateIngredientSelect();
+    // Recalculate nutrition after removing ingredient
+    this.calculateNutrition();
   },
 
   /**

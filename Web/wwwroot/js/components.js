@@ -450,19 +450,19 @@ const components = {
       <div class="view-nutrition">
         <div class="nutrition-item">
           <div class="nutrition-value">${utils.formatNumber(product.caloriesPer100g)}</div>
-          <div class="nutrition-label">Ккал</div>
+          <div class="nutrition-label">Ккал / 100 г</div>
         </div>
         <div class="nutrition-item">
           <div class="nutrition-value">${utils.formatNumber(product.proteinsPer100g)}</div>
-          <div class="nutrition-label">Белки, г</div>
+          <div class="nutrition-label">Белки, г / 100 г</div>
         </div>
         <div class="nutrition-item">
           <div class="nutrition-value">${utils.formatNumber(product.fatsPer100g)}</div>
-          <div class="nutrition-label">Жиры, г</div>
+          <div class="nutrition-label">Жиры, г / 100 г</div>
         </div>
         <div class="nutrition-item">
           <div class="nutrition-value">${utils.formatNumber(product.carbsPer100g)}</div>
-          <div class="nutrition-label">Углеводы, г</div>
+          <div class="nutrition-label">Углеводы, г / 100 г</div>
         </div>
       </div>
       
@@ -553,25 +553,25 @@ const components = {
       <div class="view-nutrition">
         <div class="nutrition-item">
           <div class="nutrition-value">${utils.formatNumber(dish.caloriesPerServing)}</div>
-          <div class="nutrition-label">Ккал</div>
+          <div class="nutrition-label">Ккал / порция</div>
         </div>
         <div class="nutrition-item">
           <div class="nutrition-value">${utils.formatNumber(dish.proteinsPerServing)}</div>
-          <div class="nutrition-label">Белки, г</div>
+          <div class="nutrition-label">Белки, г / порция</div>
         </div>
         <div class="nutrition-item">
           <div class="nutrition-value">${utils.formatNumber(dish.fatsPerServing)}</div>
-          <div class="nutrition-label">Жиры, г</div>
+          <div class="nutrition-label">Жиры, г / порция</div>
         </div>
         <div class="nutrition-item">
           <div class="nutrition-value">${utils.formatNumber(dish.carbsPerServing)}</div>
-          <div class="nutrition-label">Углеводы, г</div>
+          <div class="nutrition-label">Углеводы, г / порция</div>
         </div>
       </div>
       
       <div class="view-detail">
         <div class="view-detail-label">Размер порции</div>
-        <div class="view-detail-value">${utils.formatNumber(dish.servingSize, 0)} г</div>
+        <div class="view-detail-value">${utils.formatNumber(dish.servingSize, 2)} г</div>
       </div>
       
       <div class="view-detail">
@@ -600,7 +600,7 @@ const components = {
               ${dish.ingredients
                 .map(
                   (ing) => `
-                <li>${utils.escapeHtml(ing.productName)} — ${utils.formatNumber(ing.amountInGrams, 0)} г</li>
+                <li>${utils.escapeHtml(ing.productName)} — ${utils.formatNumber(ing.amountInGrams, 2)} г</li>
               `,
                 )
                 .join("")}
