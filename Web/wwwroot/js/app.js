@@ -64,7 +64,7 @@ const app = {
         },
         {
           name: "category",
-          label: "Категория",
+          label: "Категория *",
           type: "select",
           options: [],
           required: true,
@@ -455,9 +455,12 @@ const app = {
     const nutritionContainer = document.getElementById(
       "nutrition-calculation-container",
     );
+    const macrosSumContainer = document.getElementById("macros-sum-container");
+    
     if (config.hasIngredients) {
       ingContainer.classList.remove("hidden");
       nutritionContainer.classList.remove("hidden");
+      macrosSumContainer.classList.add("hidden");
       document.getElementById("ingredients-list").innerHTML = "";
       this.selectedIngredients.clear();
       this.updateIngredientSelect();
@@ -466,6 +469,24 @@ const app = {
     } else {
       ingContainer.classList.add("hidden");
       nutritionContainer.classList.add("hidden");
+      
+      // For products, show macros sum display
+      if (this.currentEntity === "products") {
+        macrosSumContainer.classList.remove("hidden");
+        
+        // Initialize macros sum
+        this.updateMacrosSum();
+        
+        // Add event listeners for macros fields
+        ["proteinsPer100g", "fatsPer100g", "carbsPer100g"].forEach((fieldName) => {
+          const input = document.getElementById(`field-${fieldName}`);
+          if (input) {
+            input.addEventListener("input", () => this.updateMacrosSum());
+          }
+        });
+      } else {
+        macrosSumContainer.classList.add("hidden");
+      }
     }
 
     document.getElementById("entity-modal").classList.add("active");
@@ -557,9 +578,12 @@ const app = {
       const nutritionContainer = document.getElementById(
         "nutrition-calculation-container",
       );
+      const macrosSumContainer = document.getElementById("macros-sum-container");
+      
       if (config.hasIngredients && fullItem.ingredients) {
         ingContainer.classList.remove("hidden");
         nutritionContainer.classList.remove("hidden");
+        macrosSumContainer.classList.add("hidden");
         const ingList = document.getElementById("ingredients-list");
         ingList.innerHTML = "";
         this.selectedIngredients.clear();
@@ -580,6 +604,24 @@ const app = {
       } else {
         ingContainer.classList.add("hidden");
         nutritionContainer.classList.add("hidden");
+        
+        // For products, show macros sum display
+        if (this.currentEntity === "products") {
+          macrosSumContainer.classList.remove("hidden");
+          
+          // Initialize macros sum with current values
+          this.updateMacrosSum();
+          
+          // Add event listeners for macros fields
+          ["proteinsPer100g", "fatsPer100g", "carbsPer100g"].forEach((fieldName) => {
+            const input = document.getElementById(`field-${fieldName}`);
+            if (input) {
+              input.addEventListener("input", () => this.updateMacrosSum());
+            }
+          });
+        } else {
+          macrosSumContainer.classList.add("hidden");
+        }
       }
 
       document.getElementById("entity-modal").classList.add("active");
@@ -771,6 +813,65 @@ const app = {
     if (formFats) formFats.value = fats.toFixed(2);
     if (formCarbs) formCarbs.value = carbs.toFixed(2);
     if (formServingSize) formServingSize.value = totalWeight.toFixed(2);
+  },
+
+  /**
+   * Calculate and update macros sum for products
+   */
+  updateMacrosSum() {
+    // Only for products
+    if (this.currentEntity !== "products") return;
+
+    const proteinsInput = document.getElementById("field-proteinsPer100g");
+    const fatsInput = document.getElementById("field-fatsPer100g");
+    const carbsInput = document.getElementById("field-carbsPer100g");
+    const sumValueEl = document.getElementById("macros-sum-value");
+    const sumWarningEl = document.getElementById("macros-sum-warning");
+
+    if (!proteinsInput || !fatsInput || !carbsInput || !sumValueEl) return;
+
+    const proteins = parseFloat(proteinsInput.value) || 0;
+    const fats = parseFloat(fatsInput.value) || 0;
+    const carbs = parseFloat(carbsInput.value) || 0;
+    const sum = proteins + fats + carbs;
+
+    sumValueEl.textContent = `${sum.toFixed(2)} г`;
+
+    if (sum > 100) {
+      sumValueEl.style.color = "var(--error)";
+      if (sumWarningEl) sumWarningEl.style.display = "block";
+    } else {
+      sumValueEl.style.color = "inherit";
+      if (sumWarningEl) sumWarningEl.style.display = "none";
+    }
+  },
+
+  /**
+   * Validate macros sum for products
+   */
+  validateMacrosSum() {
+    if (this.currentEntity !== "products") return true;
+
+    const proteinsInput = document.getElementById("field-proteinsPer100g");
+    const fatsInput = document.getElementById("field-fatsPer100g");
+    const carbsInput = document.getElementById("field-carbsPer100g");
+
+    if (!proteinsInput || !fatsInput || !carbsInput) return true;
+
+    const proteins = parseFloat(proteinsInput.value) || 0;
+    const fats = parseFloat(fatsInput.value) || 0;
+    const carbs = parseFloat(carbsInput.value) || 0;
+    const sum = proteins + fats + carbs;
+
+    if (sum > 100) {
+      this.showNotification(
+        `Сумма белков, жиров и углеводов не может превышать 100 г. Текущая сумма: ${sum.toFixed(2)} г`,
+        "error",
+      );
+      return false;
+    }
+
+    return true;
   },
 
   /**
@@ -977,6 +1078,11 @@ const app = {
 
     if (hasErrors) {
       this.showNotification("Исправьте ошибки в форме", "error");
+      return;
+    }
+
+    // Validate macros sum for products (frontend validation)
+    if (!this.validateMacrosSum()) {
       return;
     }
 

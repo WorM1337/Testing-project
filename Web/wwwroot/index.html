@@ -19,6 +19,21 @@
           <input type="hidden" id="edit-id" />
           <div id="modal-fields" class="form-grid"></div>
 
+          <!-- Macros Sum Display (for products only) -->
+          <div
+            id="macros-sum-container"
+            class="macros-sum-display hidden"
+            style="padding: 12px; background: var(--bg); border-radius: var(--radius); margin-top: 8px;"
+          >
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 600;">Сумма БЖУ:</span>
+              <span id="macros-sum-value" style="font-size: 1.1rem; font-weight: 600;">0.00 г</span>
+            </div>
+            <div id="macros-sum-warning" style="color: var(--error); margin-top: 4px; display: none;">
+              ⚠️ Сумма белков, жиров и углеводов не может превышать 100 г!
+            </div>
+          </div>
+
           <!-- Nutrition Calculation Section (for dishes only) -->
           <div
             id="nutrition-calculation-container"
@@ -314,10 +329,10 @@
       </div>
     </div>
 
-    <script src="js/api.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/components.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/api.js?v=4"></script>
+    <script src="js/utils.js?v=4"></script>
+    <script src="js/components.js?v=4"></script>
+    <script src="js/app.js?v=4"></script>
     <script>
       // Recalculate nutrition when ingredient amount changes
       document.addEventListener("input", function (e) {

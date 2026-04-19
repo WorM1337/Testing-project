@@ -32,5 +32,11 @@ public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
 
         RuleFor(p => p.CookingRequirement)
             .IsInEnum().WithMessage("Требования к готовке обязательны и должны быть корректным значением.");
+
+        // Validation for sum of macronutrients (proteins + fats + carbs <= 100g)
+        RuleFor(p => p)
+            .Must(p => p.ProteinsPer100g + p.FatsPer100g + p.CarbsPer100g <= 100)
+            .WithMessage(p => $"Сумма белков, жиров и углеводов не может превышать 100 г. Текущая сумма: {(p.ProteinsPer100g + p.FatsPer100g + p.CarbsPer100g):F2} г.")
+            .When(p => p.ProteinsPer100g >= 0 && p.FatsPer100g >= 0 && p.CarbsPer100g >= 0);
     }
 }
