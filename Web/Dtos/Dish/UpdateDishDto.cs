@@ -24,6 +24,11 @@ public record UpdateDishDto
     /// </summary>
     public double? ServingSize { get; init; }
     
-    public ExtraFlag? Flags { get; init; }
+    /// <summary>
+    /// Flags as comma-separated string (e.g., "Vegan,GlutenFree") for easier frontend handling.
+    /// Will be parsed into ExtraFlag enum by the controller.
+    /// </summary>
+    public string? Flags { get; init; }
+    
     public DishCategory? Category { get; init; }
 }

@@ -1,11 +1,12 @@
 using Core.Models;
+using Core.Models.Enums;
 using Testing_project.Dtos;
 
 namespace Testing_project.Extensions;
 
 public static class ProductExtensions
 {
-    public static void ApplyUpdate(this Product product, UpdateProductDto dto)
+    public static void ApplyUpdate(this Product product, UpdateProductDto dto, ExtraFlag? parsedFlags = null)
     {
         if (dto.Name != null)
             product.Name = dto.Name;
@@ -34,7 +35,8 @@ public static class ProductExtensions
         if (dto.CookingRequirement.HasValue)
             product.CookingRequirement = dto.CookingRequirement.Value;
 
-        if (dto.Flags.HasValue)
-            product.Flags = dto.Flags.Value;
+        // Apply parsed flags if provided
+        if (parsedFlags.HasValue)
+            product.Flags = parsedFlags.Value;
     }
 }

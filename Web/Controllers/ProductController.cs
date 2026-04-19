@@ -17,6 +17,27 @@ public class ProductsController(
     IProductRepository productRepository,
     IMapper mapper) : ControllerBase
 {
+    /// <summary>
+    /// Parses comma-separated flags string into ExtraFlag enum
+    /// </summary>
+    private static ExtraFlag? ParseFlags(string? flagsString)
+    {
+        if (string.IsNullOrWhiteSpace(flagsString))
+            return null;
+
+        var flags = ExtraFlag.None;
+        var parts = flagsString.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        foreach (var part in parts)
+        {
+            if (Enum.TryParse<ExtraFlag>(part, true, out var flag))
+            {
+                flags |= flag;
+            }
+        }
+
+        return flags == ExtraFlag.None ? null : flags;
+    }
     // GET: api/products
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts([FromQuery] ProductQuery query)
@@ -63,8 +84,15 @@ public class ProductsController(
         if (product == null) 
             return NotFound();
 
+        // Parse flags from string if provided
+        ExtraFlag? parsedFlags = null;
+        if (updateDto.Flags != null)
+        {
+            parsedFlags = ParseFlags(updateDto.Flags);
+        }
+
         // Вся магия здесь, одна строка
-        product.ApplyUpdate(updateDto);
+        product.ApplyUpdate(updateDto, parsedFlags);
 
         await productService.UpdateProductAsync(product);
         return NoContent();

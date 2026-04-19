@@ -1,11 +1,12 @@
 using AutoMapper;
 using Core.Models;
+using Core.Models.Enums;
 using Testing_project.Dtos.Dish;
 using Testing_project.Dtos.Ingredient;
 
 public static class DishExtensions
 {
-    public static void ApplyUpdate(this Dish dish, UpdateDishDto dto, IMapper mapper)
+    public static void ApplyUpdate(this Dish dish, UpdateDishDto dto, IMapper mapper, ExtraFlag? parsedFlags = null)
     {
         if (dto.Name != null)
             dish.Name = dto.Name;
@@ -16,11 +17,13 @@ public static class DishExtensions
         if (dto.Category.HasValue)
             dish.Category = dto.Category.Value;
 
-        if (dto.Flags.HasValue)
-            dish.Flags = dto.Flags.Value;
+        // Apply parsed flags if provided (flags are parsed from string in controller)
+        if (parsedFlags.HasValue)
+            dish.Flags = parsedFlags.Value;
 
         // КБЖУ - пользовательские переопределения
         // Если пользователь указал значения, они сохраняются и будут использованы сервисом
+        // Важно: мы устанавливаем значения только если они были явно переданы в DTO
         if (dto.CaloriesPerServing.HasValue)
             dish.CaloriesPerServing = dto.CaloriesPerServing.Value;
 

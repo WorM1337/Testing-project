@@ -48,7 +48,12 @@ public class DishService(IDishRepository dishRepository, IProductRepository prod
         return await dishRepository.CreateAsync(dish);
     }
 
-    public async Task<Dish> UpdateDishAsync(Dish dish, bool categoryWasExplicitlySet = false)
+    public async Task<Dish> UpdateDishAsync(Dish dish, bool categoryWasExplicitlySet = false,
+        bool caloriesWasExplicitlySet = false,
+        bool proteinsWasExplicitlySet = false,
+        bool fatsWasExplicitlySet = false,
+        bool carbsWasExplicitlySet = false,
+        bool servingSizeWasExplicitlySet = false)
     {
         // 0. Обработка макросов в названии (аналогично CreateDishAsync)
         var (macroCategory, cleanName) = DishCategoryParser.Parse(dish.Name);
@@ -70,12 +75,13 @@ public class DishService(IDishRepository dishRepository, IProductRepository prod
         RecalculateFlags(dish);
 
         // 3. Пересчет КБЖУ с учётом возможных пользовательских переопределений
+        // Используем null для значений, которые не были явно установлены пользователем
         CalculateNutrition(dish,
-            overrideCalories: dish.CaloriesPerServing,
-            overrideProteins: dish.ProteinsPerServing,
-            overrideFats: dish.FatsPerServing,
-            overrideCarbs: dish.CarbsPerServing,
-            overrideServingSize: dish.ServingSize);
+            overrideCalories: caloriesWasExplicitlySet ? dish.CaloriesPerServing : null,
+            overrideProteins: proteinsWasExplicitlySet ? dish.ProteinsPerServing : null,
+            overrideFats: fatsWasExplicitlySet ? dish.FatsPerServing : null,
+            overrideCarbs: carbsWasExplicitlySet ? dish.CarbsPerServing : null,
+            overrideServingSize: servingSizeWasExplicitlySet ? dish.ServingSize : null);
 
         dish.UpdatedAt = DateTime.UtcNow;
 

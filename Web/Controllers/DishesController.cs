@@ -16,6 +16,27 @@ public class DishesController(
     IDishRepository dishRepository,
     IMapper mapper) : ControllerBase
 {
+    /// <summary>
+    /// Parses comma-separated flags string into ExtraFlag enum
+    /// </summary>
+    private static ExtraFlag? ParseFlags(string? flagsString)
+    {
+        if (string.IsNullOrWhiteSpace(flagsString))
+            return null;
+
+        var flags = ExtraFlag.None;
+        var parts = flagsString.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        foreach (var part in parts)
+        {
+            if (Enum.TryParse<ExtraFlag>(part, true, out var flag))
+            {
+                flags |= flag;
+            }
+        }
+
+        return flags == ExtraFlag.None ? null : flags;
+    }
     // GET: api/dishes
     [HttpGet]
     public async Task<ActionResult<IEnumerable<DishDto>>> GetDishes([FromQuery] DishQuery query)
@@ -68,17 +89,38 @@ public class DishesController(
         if (dish == null)
             return NotFound();
 
+        // Parse flags from string if provided
+        ExtraFlag? parsedFlags = null;
+        if (updateDto.Flags != null)
+        {
+            parsedFlags = ParseFlags(updateDto.Flags);
+        }
+
         // 2. Применяем обновления только для переданных полей
-        dish.ApplyUpdate(updateDto, mapper);
+        dish.ApplyUpdate(updateDto, mapper, parsedFlags);
 
         // 3. Определяем, была ли категория явно установлена через форму
         // Если updateDto.Category имеет значение (не null), значит категория была явно установлена
         bool categoryWasExplicitlySet = updateDto.Category.HasValue;
 
-        // 4. Сохраняем (сервис обработает макросы и пересчитает КБЖУ и флаги)
+        // 4. Определяем, какие поля КБЖУ были явно установлены пользователем
+        // Это нужно для того, чтобы сервис знал, какие значения пересчитывать, а какие оставить
+        bool caloriesWasExplicitlySet = updateDto.CaloriesPerServing.HasValue;
+        bool proteinsWasExplicitlySet = updateDto.ProteinsPerServing.HasValue;
+        bool fatsWasExplicitlySet = updateDto.FatsPerServing.HasValue;
+        bool carbsWasExplicitlySet = updateDto.CarbsPerServing.HasValue;
+        bool servingSizeWasExplicitlySet = updateDto.ServingSize.HasValue;
+
+        // 5. Сохраняем (сервис обработает макросы и пересчитает КБЖУ и флаги)
         try
         {
-            await dishService.UpdateDishAsync(dish, categoryWasExplicitlySet);
+            await dishService.UpdateDishAsync(dish, 
+                categoryWasExplicitlySet,
+                caloriesWasExplicitlySet,
+                proteinsWasExplicitlySet,
+                fatsWasExplicitlySet,
+                carbsWasExplicitlySet,
+                servingSizeWasExplicitlySet);
         }
         catch (InvalidOperationException ex)
         {
