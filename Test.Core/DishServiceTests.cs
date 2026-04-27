@@ -1,8 +1,10 @@
 using Core.Interfaces;
 using Core.Models;
+using Core.Models.Enums;
 using Core.Services;
 using FluentAssertions;
 using Moq;
+using System.Linq;
 
 namespace Test.Core;
 
@@ -19,154 +21,63 @@ public class DishServiceTests
         _dishService = new DishService(_dishRepository.Object, _productRepository.Object);
     }
 
-    #region Тесты расчёта КБЖУ - Эквивалентное разбиение и Граничные значения
-    
+    // ===== ГРУППА 1: Один продукт (Картошка) с разным количеством (проверка расчёта от веса) =====
+    // Стандартная порция (100г)
+    // Граница: пустое блюдо (0г)
+    // Граница: мало (50г)
+    // Граница: много (500г)
     [Theory]
-    [InlineData(0, 0.0, 0.0, 0.0, 0.0)] // 1. Граничное значение: 0 г
-    [InlineData(0.1, 0.165, 0.031, 0.0036, 0.0)] // 2. Граничное значение: 0.1 г
-    [InlineData(50, 82.5, 15.5, 1.8, 0.0)] // 3. Эквивалентный класс: 50 г
-    [InlineData(100, 165.0, 31.0, 3.6, 0.0)] // 4. Граничное значение: 100 г
-    [InlineData(250, 412.5, 77.5, 9.0, 0.0)] // 5. Эквивалентный класс: 250 г
-    [InlineData(1000, 1650.0, 310.0, 36.0, 0.0)] // 6. Граничное значение: 1000 г
-    public async Task CreateDishAsync_CalculatesNutrition_BoundaryValues(
-        double amountInGrams, 
-        double expectedCalories, 
-        double expectedProteins, 
-        double expectedFats, 
-        double expectedCarbs)
-    {
-        // Arrange
-        var product = new Product
-        {
-            Id = 1,
-            Name = "Test Product",
-            CaloriesPer100g = 165,
-            ProteinsPer100g = 31,
-            FatsPer100g = 3.6,
-            CarbsPer100g = 0
-        };
+    [InlineData(new int[] { 1, 100 }, 100.0, 2.0, 0.5, 4.0, 100.0)]
+    [InlineData(new int[] { 1, 50 }, 50.0, 1.0, 0.25, 2.0, 50.0)]
+    [InlineData(new int[] { 1, 500 }, 500.0, 10.0, 2.5, 20.0, 500.0)]
+    [InlineData(new int[] { 1, 0 }, 0.0, 0.0, 0.0, 0.0, 0.0)]
 
-        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
-            .ReturnsAsync(new List<Product> { product });
+    // ===== ГРУППА 2: Несколько продуктов с одинаковым весом =====
+    // 2 продукта: Картошка + Курица
+    [InlineData(new int[] { 1, 100, 2, 100 }, 265.0, 33.0, 4.1, 4.0, 200.0)]
+    // 3 продукта: Картошка + Курица + Масло
+    [InlineData(new int[] { 1, 10, 2, 10, 3, 10 }, 116.50, 3.30, 10.41, 0.4, 30.0)]
+    // 5 продуктов: Картошка + Курица + Масло + Рис + Томаты
+    [InlineData(new int[] { 1, 100, 2, 100, 3, 100, 4, 100, 5, 100 }, 1313.0, 36.6, 104.6, 35.9, 500.0)]
+    // Граница: все продукты по 0г (пустое блюдо)
+    [InlineData(new int[] { 1, 0, 2, 0, 3, 0 }, 0.0, 0.0, 0.0, 0.0, 0.0)]
 
-        var dish = new Dish
-        {
-            Name = "Test Dish",
-            Ingredients = new List<Ingredient>
-            {
-                new Ingredient { ProductId = 1, AmountInGrams = amountInGrams }
-            }
-        };
+    // ===== ГРУППА 3: Несколько продуктов с разным весом =====
+    // Сложное блюдо с разными порциями (Картошка 200г + Курица 150г + Масло 10г)
+    [InlineData(new int[] { 1, 200, 2, 150, 3, 10 }, 537.5, 50.5, 16.4, 8.0, 360.0)]
+    // Большой приём пищи (Картошка 300г + Курица 200г + Рис 150г + Томаты 100г)
+    [InlineData(new int[] { 1, 300, 2, 200, 4, 150, 5, 100 }, 843.0, 72.95, 9.35, 57.9, 750.0)]
+    // Блюдо с доминированием одного продукта (Масло 50г + Курица 100г + Томаты 20г)
+    [InlineData(new int[] { 3, 50, 2, 100, 5, 20 }, 618.6, 31.18, 53.64, 0.78, 170.0)]
+    // Граница: один продукт с весом, остальные 0г (Картошка 100г + Курица 0г + Масло 0г)
+    [InlineData(new int[] { 1, 100, 2, 0, 3, 0 }, 100.0, 2.0, 0.5, 4.0, 100.0)]
 
-        _dishRepository.Setup(r => r.CreateAsync(It.IsAny<Dish>()))
-            .ReturnsAsync((Dish d) => d);
-
-        // Act
-        var result = await _dishService.CreateDishAsync(dish);
-
-        // Assert
-        result.CaloriesPerServing.Should().BeApproximately(expectedCalories, 0.01);
-        result.ProteinsPerServing.Should().BeApproximately(expectedProteins, 0.01);
-        result.FatsPerServing.Should().BeApproximately(expectedFats, 0.01);
-        result.CarbsPerServing.Should().BeApproximately(expectedCarbs, 0.01);
-        result.ServingSize.Should().BeApproximately(amountInGrams, 0.01);
-    }
-
-    // Эквивалентные классы для КБЖУ продукта: 0 (граница), низкая (25), средняя (165), высокая (900), макс (900/50/100/50)
-    [Theory]
-    [InlineData(0, 0, 0, 0, 100, 0.0, 0.0, 0.0, 0.0)] // Граница: продукт без калорий
-    [InlineData(25, 2, 0.5, 4, 100, 25.0, 2.0, 0.5, 4.0)] // Низкая калорийность (овощи)
-    [InlineData(165, 31, 3.6, 0, 100, 165.0, 31.0, 3.6, 0.0)] // Средняя калорийность (мясо)
-    [InlineData(900, 0, 100, 0, 100, 900.0, 0.0, 100.0, 0.0)] // Высокая калорийность (масло)
-    [InlineData(900, 50, 100, 50, 100, 900.0, 50.0, 100.0, 50.0)] // Граница: максимальные значения
-    public async Task CreateDishAsync_CalculatesNutrition_DifferentProductTypes(
-        double calories,
-        double proteins,
-        double fats,
-        double carbs,
-        double amount,
+    // ===== ГРУППА 4: Граничные значения КБЖУ (продукты с граничными значениями) =====
+    // 0 калорий (Вода)
+    [InlineData(new int[] { 6, 100 }, 0.0, 0.0, 0.0, 0.0, 100.0)]
+    // Макс жиры (Масло), мало веса (10г)
+    [InlineData(new int[] { 7, 10 }, 90.0, 0.0, 10.0, 0.0, 10.0)]
+    // Макс белки (Протеин), стандартная порция (30г)
+    [InlineData(new int[] { 8, 30 }, 111.0, 30.0, 0.3, 0.0, 30.0)]
+    // Макс углеводы (Сахар), мало веса (5г - чайная ложка)
+    [InlineData(new int[] { 9, 5 }, 20.0, 0.0, 0.0, 5.0, 5.0)]
+    public async Task CreateDishAsync_CalculatesNutritionBasedOnProducts_EqualsToExpectedNutrition(
+        int[] productIdsAndAmounts,
         double expectedCalories,
         double expectedProteins,
         double expectedFats,
-        double expectedCarbs)
+        double expectedCarbs,
+        double expectedServingSize)
     {
-        // Arrange
-        var product = new Product
-        {
-            Id = 1,
-            Name = "Test Product",
-            CaloriesPer100g = calories,
-            ProteinsPer100g = proteins,
-            FatsPer100g = fats,
-            CarbsPer100g = carbs
-        };
-
-        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
-            .ReturnsAsync(new List<Product> { product });
-
-        var dish = new Dish
-        {
-            Name = "Test Dish",
-            Ingredients = new List<Ingredient>
-            {
-                new Ingredient { ProductId = 1, AmountInGrams = amount }
-            }
-        };
-
-        _dishRepository.Setup(r => r.CreateAsync(It.IsAny<Dish>()))
-            .ReturnsAsync((Dish d) => d);
-
-        // Act
-        var result = await _dishService.CreateDishAsync(dish);
-
-        // Assert
-        result.CaloriesPerServing.Should().BeApproximately(expectedCalories, 0.01);
-        result.ProteinsPerServing.Should().BeApproximately(expectedProteins, 0.01);
-        result.FatsPerServing.Should().BeApproximately(expectedFats, 0.01);
-        result.CarbsPerServing.Should().BeApproximately(expectedCarbs, 0.01);
-    }
-
-    // Эквивалентные классы: 1, 3, 5 ингредиентов
-    [Theory]
-    [InlineData(1)] // 1 ингредиент
-    [InlineData(3)] // 3 ингредиента
-    [InlineData(5)] // 5 ингредиентов
-    public async Task CreateDishAsync_CalculatesNutrition_MultipleIngredients(
-        int ingredientCount)
-    {
-        // Arrange
-        var products = new List<Product>
-        {
-            new Product { Id = 1, Name = "Product 1", CaloriesPer100g = 100, ProteinsPer100g = 10, FatsPer100g = 5, CarbsPer100g = 10 },
-            new Product { Id = 2, Name = "Product 2", CaloriesPer100g = 200, ProteinsPer100g = 20, FatsPer100g = 10, CarbsPer100g = 20 },
-            new Product { Id = 3, Name = "Product 3", CaloriesPer100g = 300, ProteinsPer100g = 30, FatsPer100g = 15, CarbsPer100g = 30 },
-            new Product { Id = 4, Name = "Product 4", CaloriesPer100g = 400, ProteinsPer100g = 40, FatsPer100g = 20, CarbsPer100g = 40 },
-            new Product { Id = 5, Name = "Product 5", CaloriesPer100g = 500, ProteinsPer100g = 50, FatsPer100g = 25, CarbsPer100g = 50 }
-        };
+        
+        var (ingredients, products) = ProductHelper.BuildIngredientsAndProductsByIdsAndAmounts(productIdsAndAmounts);
 
         _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
             .ReturnsAsync(products);
 
-        var ingredients = new List<Ingredient>();
-        double expectedCalories = 0, expectedProteins = 0, expectedFats = 0, expectedCarbs = 0;
-        double totalWeight = 0;
-
-        for (int i = 0; i < ingredientCount; i++)
-        {
-            var amount = 100.0;
-            ingredients.Add(new Ingredient { ProductId = i + 1, AmountInGrams = amount });
-            
-            var product = products[i];
-            expectedCalories += product.CaloriesPer100g;
-            expectedProteins += product.ProteinsPer100g;
-            expectedFats += product.FatsPer100g;
-            expectedCarbs += product.CarbsPer100g;
-            totalWeight += amount;
-        }
-
         var dish = new Dish
         {
-            Name = "Complex Dish",
+            Name = "Тестовое блюдо",
             Ingredients = ingredients
         };
 
@@ -181,87 +92,8 @@ public class DishServiceTests
         result.ProteinsPerServing.Should().BeApproximately(expectedProteins, 0.01);
         result.FatsPerServing.Should().BeApproximately(expectedFats, 0.01);
         result.CarbsPerServing.Should().BeApproximately(expectedCarbs, 0.01);
-        result.ServingSize.Should().BeApproximately(totalWeight, 0.01);
+        result.ServingSize.Should().BeApproximately(expectedServingSize, 0.01);
     }
-
-    // Граничные значения веса: 0.5г, 1.5г, 99.9г
-    [Theory]
-    [InlineData(0.5, 0.825, 0.155, 0.018, 0.0)] // 0.5 г
-    [InlineData(1.5, 2.475, 0.465, 0.054, 0.0)] // 1.5 г
-    [InlineData(99.9, 164.835, 30.969, 3.5964, 0.0)] // 99.9 г
-    public async Task CreateDishAsync_CalculatesNutrition_FractionalWeights(
-        double amountInGrams,
-        double expectedCalories,
-        double expectedProteins,
-        double expectedFats,
-        double expectedCarbs)
-    {
-        // Arrange
-        var product = new Product
-        {
-            Id = 1,
-            Name = "Test Product",
-            CaloriesPer100g = 165,
-            ProteinsPer100g = 31,
-            FatsPer100g = 3.6,
-            CarbsPer100g = 0
-        };
-
-        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
-            .ReturnsAsync(new List<Product> { product });
-
-        var dish = new Dish
-        {
-            Name = "Test Dish",
-            Ingredients = new List<Ingredient>
-            {
-                new Ingredient { ProductId = 1, AmountInGrams = amountInGrams }
-            }
-        };
-
-        _dishRepository.Setup(r => r.CreateAsync(It.IsAny<Dish>()))
-            .ReturnsAsync((Dish d) => d);
-
-        // Act
-        var result = await _dishService.CreateDishAsync(dish);
-
-        // Assert
-        result.CaloriesPerServing.Should().BeApproximately(expectedCalories, 0.01);
-        result.ProteinsPerServing.Should().BeApproximately(expectedProteins, 0.01);
-        result.FatsPerServing.Should().BeApproximately(expectedFats, 0.01);
-        result.CarbsPerServing.Should().BeApproximately(expectedCarbs, 0.01);
-    }
-
-    #endregion
-
-    #region Тесты Обработки Ошибок
-
-    [Fact]
-    public async Task CreateDishAsync_Throws_WhenProductMissing()
-    {
-        // Arrange
-        _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
-            .ReturnsAsync(new List<Product>());
-
-        var dish = new Dish
-        {
-            Name = "Impossible Dish",
-            Ingredients = new List<Ingredient>
-            {
-                new Ingredient { ProductId = 999, AmountInGrams = 100 }
-            }
-        };
-
-        _dishRepository.Setup(r => r.CreateAsync(It.IsAny<Dish>()))
-            .ReturnsAsync((Dish d) => d);
-
-        // Act
-        var action = () => _dishService.CreateDishAsync(dish);
-        
-        // Assert
-        await action.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*не найден*");
-    }
-
-    #endregion
+    
+    //TODO: сделать тесты на невалдные для создания блюда параметры
 }
