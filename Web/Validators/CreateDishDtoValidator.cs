@@ -60,7 +60,7 @@ public class CreateDishDtoValidator : AbstractValidator<CreateDishDto>
         RuleFor(d => d.Ingredients)
             .NotNull().WithMessage("Список ингредиентов не может быть пустым.")
             .NotEmpty().WithMessage("Должен быть хотя бы один ингредиент.")
-            .Must(ingredients => ingredients.All(i => i != null))
+            .Must(ingredients => ingredients == null || ingredients.All(i => i != null))
             .WithMessage("Среди ингредиентов есть пустые значения.");
 
         // Валидация каждого ингредиента внутри списка
