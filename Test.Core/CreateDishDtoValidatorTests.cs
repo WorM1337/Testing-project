@@ -18,7 +18,7 @@ public class CreateDishDtoValidatorTests
         _validator = new CreateDishDtoValidator();
     }
 
-    // ===== ГРУППА 1: Валидация названия =====
+    #region Валидация названия
     
     [Theory(DisplayName = "Валидация: когда название пустое - должна быть ошибка")]
     [InlineData("")]
@@ -77,16 +77,41 @@ public class CreateDishDtoValidatorTests
             .WithErrorMessage("Название блюда слишком короткое после удаления макросов (минимум 2 символа).");
     }
 
-    // ===== ГРУППА 2: Валидация фотографий =====
+    [Theory(DisplayName = "Валидация: когда название валидное - не должно быть ошибки")]
+    [InlineData("Борщ")]
+    [InlineData("Салат Цезарь")]
+    [InlineData("!десерт Торт Наполеон")]
+    public void Validate_WhenNameIsValid_ShouldNotHaveError(string name)
+    {
+        // Arrange
+        var dto = new CreateDishDto
+        {
+            Name = name,
+            Ingredients = new List<CreateIngredientDto> { new() { ProductId = 1, AmountInGrams = 100 } }
+        };
+
+        // Act
+        var result = _validator.TestValidate(dto);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.Name);
+    }
     
-    [Fact(DisplayName = "Валидация: когда фотографий больше 5 - должна быть ошибка")]
-    public void Validate_WhenMoreThan5Photos_ShouldHaveError()
+    #endregion
+
+    #region Валидация фотографий
+
+    [Theory(DisplayName = "Валидация: когда фотографий больше 5 - должна быть ошибка")]
+    [InlineData(6)]
+    [InlineData(10)]
+    [InlineData(25)]
+    public void Validate_WhenMoreThan5Photos_ShouldHaveError(int photoCount)
     {
         // Arrange
         var dto = new CreateDishDto
         {
             Name = "Тестовое блюдо",
-            Photos = new List<string> { "1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg" },
+            Photos = GeneratePhotoUrls(photoCount),
             Ingredients = new List<CreateIngredientDto> { new() { ProductId = 1, AmountInGrams = 100 } }
         };
 
@@ -98,7 +123,40 @@ public class CreateDishDtoValidatorTests
             .WithErrorMessage("Нельзя загрузить более 5 фотографий.");
     }
 
-    // ===== ГРУППА 3: Валидация категории =====
+    [Theory(DisplayName = "Валидация: когда фотографий 5 или меньше - не должно быть ошибки")]
+    [InlineData(0)]
+    [InlineData(3)]
+    [InlineData(5)]
+    public void Validate_When5OrFewerPhotos_ShouldNotHaveError(int photoCount)
+    {
+        // Arrange
+        var dto = new CreateDishDto
+        {
+            Name = "Тестовое блюдо",
+            Photos = GeneratePhotoUrls(photoCount),
+            Ingredients = new List<CreateIngredientDto> { new() { ProductId = 1, AmountInGrams = 100 } }
+        };
+
+        // Act
+        var result = _validator.TestValidate(dto);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.Photos);
+    }
+
+    private List<string> GeneratePhotoUrls(int count)
+    {
+        var photos = new List<string>();
+        for (int i = 0; i < count; i++)
+        {
+            photos.Add($"https://example.com/photo{i + 1}.jpg");
+        }
+        return photos;
+    }
+
+    #endregion
+
+    #region Валидация категории
     
     [Fact(DisplayName = "Валидация: когда нет макроса и категория None - должна быть ошибка")]
     public void Validate_WhenNoMacroAndCategoryIsNone_ShouldHaveError()
@@ -126,7 +184,7 @@ public class CreateDishDtoValidatorTests
         var dto = new CreateDishDto
         {
             Name = "!десерт Торт",
-            Category = DishCategory.None, // Макрос укажет категорию
+            Category = DishCategory.None,
             Ingredients = new List<CreateIngredientDto> { new() { ProductId = 1, AmountInGrams = 100 } }
         };
 
@@ -137,7 +195,30 @@ public class CreateDishDtoValidatorTests
         result.ShouldNotHaveValidationErrorFor(x => x.Category);
     }
 
-    // ===== ГРУППА 4: Валидация КБЖУ (отрицательные значения) =====
+    [Theory(DisplayName = "Валидация: когда категория указана явно - не должно быть ошибки")]
+    [InlineData(DishCategory.Entree)]
+    [InlineData(DishCategory.Side)]
+    [InlineData(DishCategory.Dessert)]
+    public void Validate_WhenCategoryIsSpecified_ShouldNotHaveError(DishCategory category)
+    {
+        // Arrange
+        var dto = new CreateDishDto
+        {
+            Name = "Тестовое блюдо",
+            Category = category,
+            Ingredients = new List<CreateIngredientDto> { new() { ProductId = 1, AmountInGrams = 100 } }
+        };
+
+        // Act
+        var result = _validator.TestValidate(dto);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.Category);
+    }
+
+    #endregion
+
+    #region Валидация КБЖУ (отрицательные значения)
     
     [Theory(DisplayName = "Валидация: когда калорийность отрицательная - должна быть ошибка")]
     [InlineData(-1)]
@@ -159,6 +240,27 @@ public class CreateDishDtoValidatorTests
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.CaloriesPerServing)
             .WithErrorMessage("Калорийность не может быть отрицательной.");
+    }
+
+    [Theory(DisplayName = "Валидация: когда калорийность валидная - не должно быть ошибки")]
+    [InlineData(0)]
+    [InlineData(100)]
+    [InlineData(500.5)]
+    public void Validate_WhenCaloriesIsValid_ShouldNotHaveError(double calories)
+    {
+        // Arrange
+        var dto = new CreateDishDto
+        {
+            Name = "Тестовое блюдо",
+            CaloriesPerServing = calories,
+            Ingredients = new List<CreateIngredientDto> { new() { ProductId = 1, AmountInGrams = 100 } }
+        };
+
+        // Act
+        var result = _validator.TestValidate(dto);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.CaloriesPerServing);
     }
 
     [Theory(DisplayName = "Валидация: когда белки отрицательные - должна быть ошибка")]
@@ -183,6 +285,27 @@ public class CreateDishDtoValidatorTests
             .WithErrorMessage("Белки не могут быть отрицательными.");
     }
 
+    [Theory(DisplayName = "Валидация: когда белки валидные - не должно быть ошибки")]
+    [InlineData(0)]
+    [InlineData(25)]
+    [InlineData(50.3)]
+    public void Validate_WhenProteinsIsValid_ShouldNotHaveError(double proteins)
+    {
+        // Arrange
+        var dto = new CreateDishDto
+        {
+            Name = "Тестовое блюдо",
+            ProteinsPerServing = proteins,
+            Ingredients = new List<CreateIngredientDto> { new() { ProductId = 1, AmountInGrams = 100 } }
+        };
+
+        // Act
+        var result = _validator.TestValidate(dto);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.ProteinsPerServing);
+    }
+
     [Theory(DisplayName = "Валидация: когда жиры отрицательные - должна быть ошибка")]
     [InlineData(-1)]
     [InlineData(-100)]
@@ -203,6 +326,27 @@ public class CreateDishDtoValidatorTests
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.FatsPerServing)
             .WithErrorMessage("Жиры не могут быть отрицательными.");
+    }
+
+    [Theory(DisplayName = "Валидация: когда жиры валидные - не должно быть ошибки")]
+    [InlineData(0)]
+    [InlineData(15)]
+    [InlineData(30.7)]
+    public void Validate_WhenFatsIsValid_ShouldNotHaveError(double fats)
+    {
+        // Arrange
+        var dto = new CreateDishDto
+        {
+            Name = "Тестовое блюдо",
+            FatsPerServing = fats,
+            Ingredients = new List<CreateIngredientDto> { new() { ProductId = 1, AmountInGrams = 100 } }
+        };
+
+        // Act
+        var result = _validator.TestValidate(dto);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.FatsPerServing);
     }
 
     [Theory(DisplayName = "Валидация: когда углеводы отрицательные - должна быть ошибка")]
@@ -227,7 +371,30 @@ public class CreateDishDtoValidatorTests
             .WithErrorMessage("Углеводы не могут быть отрицательными.");
     }
 
-    // ===== ГРУППА 5: Валидация размера порции =====
+    [Theory(DisplayName = "Валидация: когда углеводы валидные - не должно быть ошибки")]
+    [InlineData(0)]
+    [InlineData(45)]
+    [InlineData(80.2)]
+    public void Validate_WhenCarbsIsValid_ShouldNotHaveError(double carbs)
+    {
+        // Arrange
+        var dto = new CreateDishDto
+        {
+            Name = "Тестовое блюдо",
+            CarbsPerServing = carbs,
+            Ingredients = new List<CreateIngredientDto> { new() { ProductId = 1, AmountInGrams = 100 } }
+        };
+
+        // Act
+        var result = _validator.TestValidate(dto);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.CarbsPerServing);
+    }
+
+    #endregion
+
+    #region Валидация размера порции
     
     [Theory(DisplayName = "Валидация: когда размер порции ноль или отрицательный - должна быть ошибка")]
     [InlineData(0)]
@@ -251,7 +418,30 @@ public class CreateDishDtoValidatorTests
             .WithErrorMessage("Размер порции должен быть больше 0.");
     }
 
-    // ===== ГРУППА 6: Валидация ингредиентов =====
+    [Theory(DisplayName = "Валидация: когда размер порции валидный - не должно быть ошибки")]
+    [InlineData(0.1)]
+    [InlineData(100)]
+    [InlineData(250.5)]
+    public void Validate_WhenServingSizeIsValid_ShouldNotHaveError(double servingSize)
+    {
+        // Arrange
+        var dto = new CreateDishDto
+        {
+            Name = "Тестовое блюдо",
+            ServingSize = servingSize,
+            Ingredients = new List<CreateIngredientDto> { new() { ProductId = 1, AmountInGrams = 100 } }
+        };
+
+        // Act
+        var result = _validator.TestValidate(dto);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.ServingSize);
+    }
+
+    #endregion
+
+    #region Валидация ингредиентов
     
     [Fact(DisplayName = "Валидация: когда список ингредиентов null - должна быть ошибка")]
     public void Validate_WhenIngredientsIsNull_ShouldHaveError()
@@ -259,7 +449,7 @@ public class CreateDishDtoValidatorTests
         // Arrange
         var dto = new CreateDishDto
         {
-            Name = "!десерт Тестовое блюдо", // Макрос чтобы не было ошибки категории
+            Name = "!десерт Тестовое блюдо",
             Ingredients = null!
         };
 
@@ -307,7 +497,39 @@ public class CreateDishDtoValidatorTests
             .WithErrorMessage("Среди ингредиентов есть пустые значения.");
     }
 
-    // ===== ГРУППА 7: Валидация каждого ингредиента =====
+    [Theory(DisplayName = "Валидация: когда список ингредиентов валидный - не должно быть ошибки")]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(10)]
+    public void Validate_WhenIngredientsIsValid_ShouldNotHaveError(int ingredientCount)
+    {
+        // Arrange
+        var dto = new CreateDishDto
+        {
+            Name = "Тестовое блюдо",
+            Ingredients = GenerateIngredients(ingredientCount)
+        };
+
+        // Act
+        var result = _validator.TestValidate(dto);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.Ingredients);
+    }
+
+    private List<CreateIngredientDto> GenerateIngredients(int count)
+    {
+        var ingredients = new List<CreateIngredientDto>();
+        for (int i = 0; i < count; i++)
+        {
+            ingredients.Add(new CreateIngredientDto { ProductId = i + 1, AmountInGrams = 100 });
+        }
+        return ingredients;
+    }
+
+    #endregion
+
+    #region Валидация каждого ингредиента
     
     [Fact(DisplayName = "Валидация: когда у ингредиента невалидный ProductId - должна быть ошибка")]
     public void Validate_WhenIngredientHasInvalidProductId_ShouldHaveError()
@@ -315,7 +537,7 @@ public class CreateDishDtoValidatorTests
         // Arrange
         var dto = new CreateDishDto
         {
-            Name = "!десерт Тестовое блюдо", // Макрос чтобы не было ошибки категории
+            Name = "!десерт Тестовое блюдо",
             Ingredients = new List<CreateIngredientDto>
             {
                 new() { ProductId = 0, AmountInGrams = 100 }
@@ -339,7 +561,7 @@ public class CreateDishDtoValidatorTests
         // Arrange
         var dto = new CreateDishDto
         {
-            Name = "!десерт Тестовое блюдо", // Макрос чтобы не было ошибки категории
+            Name = "!десерт Тестовое блюдо",
             Ingredients = new List<CreateIngredientDto>
             {
                 new() { ProductId = 1, AmountInGrams = amount }
@@ -354,7 +576,33 @@ public class CreateDishDtoValidatorTests
             .WithErrorMessage("Количество продукта должно быть больше нуля.");
     }
 
-    // ===== ГРУППА 8: Комбинированные ошибки =====
+    [Theory(DisplayName = "Валидация: когда ингредиент валидный - не должно быть ошибки")]
+    [InlineData(1, 0.1)]
+    [InlineData(5, 100)]
+    [InlineData(10, 250.5)]
+    public void Validate_WhenIngredientIsValid_ShouldNotHaveError(int productId, double amount)
+    {
+        // Arrange
+        var dto = new CreateDishDto
+        {
+            Name = "Тестовое блюдо",
+            Ingredients = new List<CreateIngredientDto>
+            {
+                new() { ProductId = productId, AmountInGrams = amount }
+            }
+        };
+
+        // Act
+        var result = _validator.TestValidate(dto);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor("Ingredients[0].ProductId");
+        result.ShouldNotHaveValidationErrorFor("Ingredients[0].AmountInGrams");
+    }
+
+    #endregion
+
+    #region Комбинированные ошибки
     
     [Fact(DisplayName = "Валидация: когда несколько ошибок - должны быть все ошибки")]
     public void Validate_WhenMultipleErrors_ShouldHaveAllErrors()
@@ -362,15 +610,14 @@ public class CreateDishDtoValidatorTests
         // Arrange
         var dto = new CreateDishDto
         {
-            Name = "", // Ошибка 1
-            CaloriesPerServing = -10, // Ошибка 2
-            ProteinsPerServing = -5, // Ошибка 3
-            ServingSize = 0, // Ошибка 4
+            Name = "",
+            CaloriesPerServing = -10,
+            ProteinsPerServing = -5,
+            ServingSize = 0,
             Ingredients = new List<CreateIngredientDto>
             {
-                new() { ProductId = 0, AmountInGrams = 0 } // Ошибки 5 и 6
+                new() { ProductId = 0, AmountInGrams = 0 }
             }
-            // Категория не указана, макроса нет - ошибка 7
         };
 
         // Act
@@ -385,4 +632,6 @@ public class CreateDishDtoValidatorTests
         result.ShouldHaveValidationErrorFor("Ingredients[0].ProductId");
         result.ShouldHaveValidationErrorFor("Ingredients[0].AmountInGrams");
     }
+
+    #endregion
 }
