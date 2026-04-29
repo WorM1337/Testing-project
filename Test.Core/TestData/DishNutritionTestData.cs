@@ -1,3 +1,5 @@
+using Core.Models;
+
 namespace Test.Core.TestData;
 
 public static class DishNutritionTestData
@@ -11,7 +13,10 @@ public static class DishNutritionTestData
         // Стандартная порция (100г)
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 1, 100.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.Potato, 100.0)
+            },
             ExpectedCalories = 100.0,
             ExpectedProteins = 2.0,
             ExpectedFats = 0.5,
@@ -22,7 +27,10 @@ public static class DishNutritionTestData
         // Эквиваленты: мало (50г)
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 1, 50.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.Potato, 50.0)
+            },
             ExpectedCalories = 50.0,
             ExpectedProteins = 1.0,
             ExpectedFats = 0.25,
@@ -33,7 +41,10 @@ public static class DishNutritionTestData
         // Эквиваленты: много (500г)
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 1, 500.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.Potato, 500.0)
+            },
             ExpectedCalories = 500.0,
             ExpectedProteins = 10.0,
             ExpectedFats = 2.5,
@@ -44,7 +55,10 @@ public static class DishNutritionTestData
         // Граница: пустое блюдо (0г)
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 1, 0.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.Potato, 0.0)
+            },
             ExpectedCalories = 0.0,
             ExpectedProteins = 0.0,
             ExpectedFats = 0.0,
@@ -59,7 +73,11 @@ public static class DishNutritionTestData
         // 2 продукта: Картошка + Курица
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 1, 100.0, 2, 100.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.Potato, 100.0),
+                (ProductHelper.ChickenBreast, 100.0)
+            },
             ExpectedCalories = 265.0,
             ExpectedProteins = 33.0,
             ExpectedFats = 4.1,
@@ -70,7 +88,12 @@ public static class DishNutritionTestData
         // 3 продукта: Картошка + Курица + Масло
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 1, 10.0, 2, 10.0, 3, 10.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.Potato, 10.0),
+                (ProductHelper.ChickenBreast, 10.0),
+                (ProductHelper.OliveOil, 10.0)
+            },
             ExpectedCalories = 116.50,
             ExpectedProteins = 3.30,
             ExpectedFats = 10.41,
@@ -81,7 +104,14 @@ public static class DishNutritionTestData
         // 5 продуктов: Картошка + Курица + Масло + Рис + Томаты
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 1, 100.0, 2, 100.0, 3, 100.0, 4, 100.0, 5, 100.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.Potato, 100.0),
+                (ProductHelper.ChickenBreast, 100.0),
+                (ProductHelper.OliveOil, 100.0),
+                (ProductHelper.Rice, 100.0),
+                (ProductHelper.Tomato, 100.0)
+            },
             ExpectedCalories = 1313.0,
             ExpectedProteins = 36.6,
             ExpectedFats = 104.6,
@@ -92,7 +122,12 @@ public static class DishNutritionTestData
         // Граница: все продукты по 0г (пустое блюдо)
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 1, 0.0, 2, 0.0, 3, 0.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.Potato, 0.0),
+                (ProductHelper.ChickenBreast, 0.0),
+                (ProductHelper.OliveOil, 0.0)
+            },
             ExpectedCalories = 0.0,
             ExpectedProteins = 0.0,
             ExpectedFats = 0.0,
@@ -107,7 +142,12 @@ public static class DishNutritionTestData
         // Сложное блюдо с разными порциями (Картошка 200г + Курица 150г + Масло 10г)
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 1, 200.0, 2, 150.0, 3, 10.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.Potato, 200.0),
+                (ProductHelper.ChickenBreast, 150.0),
+                (ProductHelper.OliveOil, 10.0)
+            },
             ExpectedCalories = 537.5,
             ExpectedProteins = 50.5,
             ExpectedFats = 16.4,
@@ -118,7 +158,13 @@ public static class DishNutritionTestData
         // Большой приём пищи (Картошка 300г + Курица 200г + Рис 150г + Томаты 100г)
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 1, 300.0, 2, 200.0, 4, 150.0, 5, 100.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.Potato, 300.0),
+                (ProductHelper.ChickenBreast, 200.0),
+                (ProductHelper.Rice, 150.0),
+                (ProductHelper.Tomato, 100.0)
+            },
             ExpectedCalories = 843.0,
             ExpectedProteins = 72.95,
             ExpectedFats = 9.35,
@@ -129,7 +175,12 @@ public static class DishNutritionTestData
         // Блюдо с доминированием одного продукта (Масло 50г + Курица 100г + Томаты 20г)
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 3, 50.0, 2, 100.0, 5, 20.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.OliveOil, 50.0),
+                (ProductHelper.ChickenBreast, 100.0),
+                (ProductHelper.Tomato, 20.0)
+            },
             ExpectedCalories = 618.6,
             ExpectedProteins = 31.18,
             ExpectedFats = 53.64,
@@ -140,7 +191,12 @@ public static class DishNutritionTestData
         // Граница: один продукт с весом, остальные 0г (Картошка 100г + Курица 0г + Масло 0г)
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 1, 100.0, 2, 0.0, 3, 0.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.Potato, 100.0),
+                (ProductHelper.ChickenBreast, 0.0),
+                (ProductHelper.OliveOil, 0.0)
+            },
             ExpectedCalories = 100.0,
             ExpectedProteins = 2.0,
             ExpectedFats = 0.5,
@@ -150,12 +206,15 @@ public static class DishNutritionTestData
 
         #endregion
 
-        #region Граничные значения КБЖУ (продукты с граничными значениями)
+        #region Граничные значения КБЖУ для продуктов
 
         // 0 калорий (Вода)
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 6, 100.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.Water, 100.0)
+            },
             ExpectedCalories = 0.0,
             ExpectedProteins = 0.0,
             ExpectedFats = 0.0,
@@ -166,7 +225,10 @@ public static class DishNutritionTestData
         // Макс жиры (Масло), мало веса (10г)
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 7, 10.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.Butter, 10.0)
+            },
             ExpectedCalories = 90.0,
             ExpectedProteins = 0.0,
             ExpectedFats = 10.0,
@@ -177,7 +239,10 @@ public static class DishNutritionTestData
         // Макс белки (Протеин), стандартная порция (30г)
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 8, 30.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.Protein, 30.0)
+            },
             ExpectedCalories = 111.0,
             ExpectedProteins = 30.0,
             ExpectedFats = 0.3,
@@ -188,7 +253,10 @@ public static class DishNutritionTestData
         // Макс углеводы (Сахар), мало веса (5г - чайная ложка)
         testCases.Add(new DishNutritionTestCase
         {
-            ProductIdsAndAmounts = new double[] { 9, 5.0 },
+            Recipe = new List<(Product, double)>
+            {
+                (ProductHelper.Sugar, 5.0)
+            },
             ExpectedCalories = 20.0,
             ExpectedProteins = 0.0,
             ExpectedFats = 0.0,

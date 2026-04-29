@@ -163,17 +163,16 @@ public static class ProductHelper
         Protein,
         Sugar
     ];
-    public static (List<Ingredient>, List<Product>) BuildIngredientsAndProductsByIdsAndAmounts(double[] productIdsAndAmounts)
+    
+    public static (List<Ingredient>, List<Product>) BuildIngredientsAndProducts(List<(Product Product, double Amount)> recipe)
     {
         var ingredients = new List<Ingredient>();
         var products = new List<Product>();
-        
-        for (int i = 0; i < productIdsAndAmounts.Length; i += 2)
+    
+        foreach (var (product, amount) in recipe)
         {
-            var productId = (int)productIdsAndAmounts[i];
-            var amount = productIdsAndAmounts[i + 1];
-            ingredients.Add(new Ingredient { ProductId = productId, AmountInGrams = amount });
-            products.Add(ProductHelper.AllProducts.First(p => p.Id == productId));
+            ingredients.Add(new Ingredient { ProductId = product.Id, AmountInGrams = amount });
+            products.Add(product);
         }
 
         return (ingredients, products);

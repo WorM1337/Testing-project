@@ -1,8 +1,10 @@
+using Core.Models;
+
 namespace Test.Core.TestData;
 
 public class DishNutritionTestCase
 {
-    public double[] ProductIdsAndAmounts { get; set; }
+    public List<(Product Product, double Amount)> Recipe { get; set; }
     public double ExpectedCalories { get; set; }
     public double ExpectedProteins { get; set; }
     public double ExpectedFats { get; set; }
@@ -11,7 +13,7 @@ public class DishNutritionTestCase
 
     public object[] ToObjectArray() => new object[]
     {
-        ProductIdsAndAmounts,
+        Recipe,
         ExpectedCalories,
         ExpectedProteins,
         ExpectedFats,

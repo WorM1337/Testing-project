@@ -25,14 +25,15 @@ public class DishServiceTests
     [Theory(DisplayName = "Создание блюда с корректными продуктами без переопределения - расчет КБЖУ - КБЖУ совпадают с ожидаемыми")]
     [MemberData(nameof(DishNutritionTestData.GetTestCases), MemberType = typeof(DishNutritionTestData))]
     public async Task CreateDishAsync_CalculatesNutritionBasedOnProducts_EqualsToExpectedNutrition(
-        double[] productIdsAndAmounts,
+        List<(Product Product, double Amount)> recipe,
         double expectedCalories,
         double expectedProteins,
         double expectedFats,
         double expectedCarbs,
         double expectedServingSize)
     {
-        var (ingredients, products) = ProductHelper.BuildIngredientsAndProductsByIdsAndAmounts(productIdsAndAmounts);
+        //Arrange
+        var (ingredients, products) = ProductHelper.BuildIngredientsAndProducts(recipe);
 
         _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
             .ReturnsAsync(products);
@@ -56,7 +57,7 @@ public class DishServiceTests
         result.CarbsPerServing.Should().BeApproximately(expectedCarbs, 0.01);
         result.ServingSize.Should().BeApproximately(expectedServingSize, 0.01);
     }
-    
+
     #endregion
 
     #region Расчет КБЖУ с переопределением
@@ -67,7 +68,13 @@ public class DishServiceTests
     public async Task CreateDishAsync_WithFullOverride_UsesUserValues()
     {
         // Arrange: 3 продукта, но все значения переопределены пользователем
-        var (ingredients, products) = ProductHelper.BuildIngredientsAndProductsByIdsAndAmounts(new double[] { 1, 100, 2, 100, 3, 50 });
+        var recipe = new List<(Product, double)>
+        {
+            (ProductHelper.Potato, 100),
+            (ProductHelper.ChickenBreast, 100),
+            (ProductHelper.OliveOil, 50)
+        };
+        var (ingredients, products) = ProductHelper.BuildIngredientsAndProducts(recipe);
 
         _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
             .ReturnsAsync(products);
@@ -101,7 +108,12 @@ public class DishServiceTests
     public async Task CreateDishAsync_WithPartialOverride_CalculatesMissingValues()
     {
         // Arrange: переопределяем только калории и белки, остальное рассчитывается
-        var (ingredients, products) = ProductHelper.BuildIngredientsAndProductsByIdsAndAmounts(new double[] { 1, 100, 2, 100 });
+        var recipe = new List<(Product, double)>
+        {
+            (ProductHelper.Potato, 100),
+            (ProductHelper.ChickenBreast, 100)
+        };
+        var (ingredients, products) = ProductHelper.BuildIngredientsAndProducts(recipe);
 
         _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
             .ReturnsAsync(products);
@@ -133,7 +145,11 @@ public class DishServiceTests
     public async Task CreateDishAsync_WithOnlyServingSizeOverride_KeepsNutritionCalculated()
     {
         // Arrange: переопределяем только размер порции
-        var (ingredients, products) = ProductHelper.BuildIngredientsAndProductsByIdsAndAmounts(new double[] { 1, 100 });
+        var recipe = new List<(Product, double)>
+        {
+            (ProductHelper.Potato, 100)
+        };
+        var (ingredients, products) = ProductHelper.BuildIngredientsAndProducts(recipe);
 
         _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
             .ReturnsAsync(products);
@@ -166,7 +182,11 @@ public class DishServiceTests
     public async Task UpdateDishAsync_WithoutExplicitFlags_OverridesUserValues()
     {
         // Arrange
-        var (ingredients, products) = ProductHelper.BuildIngredientsAndProductsByIdsAndAmounts(new double[] { 1, 100 });
+        var recipe = new List<(Product, double)>
+        {
+            (ProductHelper.Potato, 100)
+        };
+        var (ingredients, products) = ProductHelper.BuildIngredientsAndProducts(recipe);
 
         _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
             .ReturnsAsync(products);
@@ -207,7 +227,11 @@ public class DishServiceTests
     public async Task UpdateDishAsync_WithExplicitFlagsTrue_KeepsUserValues()
     {
         // Arrange
-        var (ingredients, products) = ProductHelper.BuildIngredientsAndProductsByIdsAndAmounts(new double[] { 1, 100 });
+        var recipe = new List<(Product, double)>
+        {
+            (ProductHelper.Potato, 100)
+        };
+        var (ingredients, products) = ProductHelper.BuildIngredientsAndProducts(recipe);
 
         _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
             .ReturnsAsync(products);
@@ -248,7 +272,12 @@ public class DishServiceTests
     public async Task UpdateDishAsync_WithPartialExplicitFlags_OverridesOnlyMissing()
     {
         // Arrange
-        var (ingredients, products) = ProductHelper.BuildIngredientsAndProductsByIdsAndAmounts(new double[] { 1, 100, 2, 100 });
+        var recipe = new List<(Product, double)>
+        {
+            (ProductHelper.Potato, 100),
+            (ProductHelper.ChickenBreast, 100)
+        };
+        var (ingredients, products) = ProductHelper.BuildIngredientsAndProducts(recipe);
 
         _productRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
             .ReturnsAsync(products);
