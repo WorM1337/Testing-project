@@ -403,7 +403,7 @@ public class UpdateDishApiTests : IntegrationTestBase
         var response = await Client.PatchAsync($"/api/dishes/{created!.Id}", updateDto);
 
         // Assert
-        await response.ShouldHaveValidationError("Минимальная длина названия — 2 символа");
+        await response.ShouldHaveValidationError("Название блюда слишком короткое после удаления макросов (минимум 2 символа).");
     }
 
     /// <summary>

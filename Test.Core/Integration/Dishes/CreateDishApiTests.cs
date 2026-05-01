@@ -628,7 +628,7 @@ public class CreateDishApiTests : IntegrationTestBase
         var productDto = TestDataBuilder.CreateProduct();
         var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
         
-        var createDto = TestDataBuilder.CreateDish(productId: product!.Id);
+        var createDto = TestDataBuilder.CreateDish(productId: product!.Id, category: DishCategory.Entree);
 
         // Act
         var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);

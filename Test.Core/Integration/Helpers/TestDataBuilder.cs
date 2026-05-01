@@ -43,7 +43,7 @@ public static class TestDataBuilder
         string name = "Тестовое блюдо",
         int productId = 1,
         double amount = 100,
-        DishCategory category = DishCategory.None,
+        DishCategory category = DishCategory.Dessert,
         ExtraFlag flags = ExtraFlag.None)
     {
         return new CreateDishDto

@@ -106,7 +106,7 @@ public class ProductsController(
         {
             var result = await productService.DeleteProductAsync(id);
             if (!result)
-                return BadRequest(new { error = result });
+                return NotFound(new { error = result });
 
             return NoContent();
         }

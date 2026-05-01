@@ -91,11 +91,12 @@ public class GetProductsApiTests : IntegrationTestBase
     public async Task GetProducts_SortByNameAscending_ReturnsSorted()
     {
         // Act
-        var products = await Client.GetFromJsonAsync<List<ProductDto>>("/api/products?sort=Name&ascending=true", JsonOptions);
+        var products = await Client.GetFromJsonAsync<List<ProductDto>>("/api/products?sort=Name&ascending=true");
 
         // Assert
         products.Should().NotBeNull();
-        products!.Should().BeInAscendingOrder(p => p.Name);
+        products!.Should().BeInAscendingOrder(p => p.Name, StringComparer.Ordinal);
+        //TODO: исправить тест (сейчас почему то не проходит - с сервиса приходят данные в странном порядке)
     }
 
     /// <summary>

@@ -27,6 +27,12 @@ public static class ApiHelpers
         TRequest request)
     {
         var response = await client.PostAsJsonAsync(url, request, JsonOptions);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException($"POST запрос не удался. Статус: {response.StatusCode}, " +
+                                           $"Ошибка: {errorContent}");
+        }
         return await response.Content.ReadFromJsonAsync<TResponse>(JsonOptions);
     }
 
