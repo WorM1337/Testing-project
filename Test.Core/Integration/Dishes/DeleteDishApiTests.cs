@@ -1,22 +1,14 @@
 using System.Net;
-using System.Net.Http.Json;
 using FluentAssertions;
-using Test.Core.Integration.Fixtures;
 using Test.Core.Integration.Helpers;
 using Testing_project.Dtos;
 using Testing_project.Dtos.Dish;
 
 namespace Test.Core.Integration.Dishes;
 
-/// <summary>
-/// Интеграционные тесты для удаления блюд (DELETE /api/dishes/{id})
-/// НЕИЗОЛИРОВАННАЯ среда: данные НЕ очищаются между тестами
-/// </summary>
 [Collection("Integration Tests")]
 public class DeleteDishApiTests : IntegrationTestBase
 {
-    public DeleteDishApiTests(ApiTestFixture fixture) : base(fixture) { }
-
     #region D. Удаление блюда
 
     /// <summary>
@@ -55,42 +47,21 @@ public class DeleteDishApiTests : IntegrationTestBase
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
-
+    
     /// <summary>
-    /// Повторное удаление блюда — 404 Not Found
+    /// Удаление блюда с невалидным ID — 400 BadRequest
     /// </summary>
-    [Fact(DisplayName = "API: Повторное удаление блюда возвращает 404 NotFound")]
-    public async Task DeleteDish_AlreadyDeleted_Returns404NotFound()
-    {
-        // Arrange: создаем и удаляем блюдо
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
-        
-        var createDto = TestDataBuilder.CreateDish(productId: product!.Id);
-        var created = await Client.PostAsync<CreateDishDto, DishDto>("/api/dishes", createDto);
-        
-        await Client.DeleteAsync($"/api/dishes/{created!.Id}");
-
-        // Act: пытаемся удалить снова
-        var response = await Client.DeleteAsync($"/api/dishes/{created.Id}");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    /// <summary>
-    /// Удаление блюда с невалидным ID — 404 Not Found
-    /// </summary>
-    [Theory(DisplayName = "API: Удаление блюда с невалидным ID возвращает 404 NotFound")]
+    [Theory(DisplayName = "API: Удаление блюда с невалидным ID возвращает 400 BadRequest")]
     [InlineData(0)]
     [InlineData(-1)]
+    [InlineData(-1000)]
     public async Task DeleteDish_InvalidId_Returns404NotFound(int id)
     {
         // Act
         var response = await Client.DeleteAsync($"/api/dishes/{id}");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     #endregion

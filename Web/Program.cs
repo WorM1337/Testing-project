@@ -3,11 +3,19 @@ using Core.Interfaces;
 using Core.Services;
 using Data.Contexts;
 using Data.Repositories;
+using DotNetEnv;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using Testing_project.Mappers;
 using Testing_project.Validators;
+
+// Загружаем .env файл из корня проекта
+var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
+if (File.Exists(envPath))
+{
+    Env.Load(envPath);
+}
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();

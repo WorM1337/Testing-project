@@ -1,8 +1,6 @@
 using System.Net;
-using System.Net.Http.Json;
 using Core.Models.Enums;
 using FluentAssertions;
-using Test.Core.Integration.Fixtures;
 using Test.Core.Integration.Helpers;
 using Testing_project.Dtos;
 using Testing_project.Dtos.Dish;
@@ -10,15 +8,9 @@ using Testing_project.Dtos.Ingredient;
 
 namespace Test.Core.Integration.Dishes;
 
-/// <summary>
-/// Интеграционные тесты для обновления блюд (PATCH /api/dishes/{id})
-/// НЕИЗОЛИРОВАННАЯ среда: данные НЕ очищаются между тестами
-/// </summary>
 [Collection("Integration Tests")]
 public class UpdateDishApiTests : IntegrationTestBase
 {
-    public UpdateDishApiTests(ApiTestFixture fixture) : base(fixture) { }
-
     #region B1. Эквивалентное разбиение — частичное обновление
 
     /// <summary>

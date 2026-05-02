@@ -1,23 +1,15 @@
 using System.Net;
-using System.Net.Http.Json;
 using Core.Models.Enums;
 using FluentAssertions;
-using Test.Core.Integration.Fixtures;
 using Test.Core.Integration.Helpers;
 using Testing_project.Dtos;
 using static Test.Core.Integration.Helpers.ApiHelpers;
 
 namespace Test.Core.Integration.Products;
 
-/// <summary>
-/// Интеграционные тесты для создания продуктов (POST /api/products)
-/// НЕИЗОЛИРОВАННАЯ среда: данные НЕ очищаются между тестами
-/// </summary>
 [Collection("Integration Tests")]
 public class CreateProductApiTests : IntegrationTestBase
 {
-    public CreateProductApiTests(ApiTestFixture fixture) : base(fixture) { }
-
     #region E1. Создание продуктов — валидные данные
 
     /// <summary>
@@ -43,13 +35,16 @@ public class CreateProductApiTests : IntegrationTestBase
         
         var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
         result.Should().NotBeNull();
-        result!.Name.Should().Be("Тестовый продукт");
+        result!.Name.Should().Be(createDto.Name);
         result.CaloriesPer100g.Should().Be(100);
         result.ProteinsPer100g.Should().Be(10);
         result.FatsPer100g.Should().Be(5);
         result.CarbsPer100g.Should().Be(15);
         result.Category.Should().Be(ProductCategory.Vegetables);
         result.Id.Should().BeGreaterThan(0);
+        
+        // Сохраняем для очистки
+        CreatedProductIds.Add(result.Id);
     }
 
     /// <summary>
@@ -74,6 +69,7 @@ public class CreateProductApiTests : IntegrationTestBase
         
         var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
         result!.Flags.Should().HaveFlag(flag);
+        CreatedProductIds.Add(result.Id);
     }
 
     /// <summary>
@@ -98,6 +94,7 @@ public class CreateProductApiTests : IntegrationTestBase
         result!.Flags.Should().HaveFlag(ExtraFlag.Vegan);
         result.Flags.Should().HaveFlag(ExtraFlag.GlutenFree);
         result.Flags.Should().HaveFlag(ExtraFlag.SugarFree);
+        CreatedProductIds.Add(result.Id);
     }
 
     /// <summary>
@@ -123,6 +120,9 @@ public class CreateProductApiTests : IntegrationTestBase
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
+        
+        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
+        CreatedProductIds.Add(result.Id);
     }
 
     /// <summary>
@@ -159,6 +159,7 @@ public class CreateProductApiTests : IntegrationTestBase
         
         var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
         result!.Photos.Should().HaveCount(photoCount);
+        CreatedProductIds.Add(result.Id);
     }
 
     /// <summary>
@@ -188,6 +189,7 @@ public class CreateProductApiTests : IntegrationTestBase
         
         var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
         result!.Composition.Should().Be("Вода, соль, специи");
+        CreatedProductIds.Add(result.Id);
     }
 
     /// <summary>
@@ -218,6 +220,7 @@ public class CreateProductApiTests : IntegrationTestBase
         
         var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
         result!.Category.Should().Be(category);
+        CreatedProductIds.Add(result.Id);
     }
 
     /// <summary>
@@ -249,6 +252,7 @@ public class CreateProductApiTests : IntegrationTestBase
         
         var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
         result!.CookingRequirement.Should().Be(cookingRequirement);
+        CreatedProductIds.Add(result.Id);
     }
 
     #endregion
@@ -479,6 +483,9 @@ public class CreateProductApiTests : IntegrationTestBase
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
+        
+        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
+        CreatedProductIds.Add(result!.Id);
     }
 
     #endregion
@@ -501,6 +508,9 @@ public class CreateProductApiTests : IntegrationTestBase
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
+        
+        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
+        CreatedProductIds.Add(result!.Id);
     }
 
     /// <summary>
@@ -526,6 +536,9 @@ public class CreateProductApiTests : IntegrationTestBase
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
+        
+        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
+        CreatedProductIds.Add(result!.Id);
     }
 
     /// <summary>
@@ -551,6 +564,9 @@ public class CreateProductApiTests : IntegrationTestBase
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
+        
+        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
+        CreatedProductIds.Add(result!.Id);
     }
 
     #endregion

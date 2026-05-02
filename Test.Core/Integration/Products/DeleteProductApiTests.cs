@@ -1,22 +1,14 @@
 using System.Net;
-using System.Net.Http.Json;
 using FluentAssertions;
-using Test.Core.Integration.Fixtures;
 using Test.Core.Integration.Helpers;
 using Testing_project.Dtos;
 using Testing_project.Dtos.Dish;
 
 namespace Test.Core.Integration.Products;
 
-/// <summary>
-/// Интеграционные тесты для удаления продуктов (DELETE /api/products/{id})
-/// НЕИЗОЛИРОВАННАЯ среда: данные НЕ очищаются между тестами
-/// </summary>
 [Collection("Integration Tests")]
 public class DeleteProductApiTests : IntegrationTestBase
 {
-    public DeleteProductApiTests(ApiTestFixture fixture) : base(fixture) { }
-
     #region Удаление продукта
 
     /// <summary>

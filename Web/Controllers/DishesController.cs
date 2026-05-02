@@ -134,6 +134,7 @@ public class DishesController(
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteDish(int id)
     {
+        if(id <= 0) return BadRequest();
         var result = await dishService.DeleteDishAsync(id);
         if (!result) return NotFound();
         return NoContent();

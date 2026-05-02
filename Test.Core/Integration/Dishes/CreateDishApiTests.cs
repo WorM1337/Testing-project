@@ -1,27 +1,18 @@
 using System.Net;
-using System.Net.Http.Json;
 using Core.Models.Enums;
 using FluentAssertions;
-using Test.Core.Integration.Fixtures;
 using Test.Core.Integration.Helpers;
 using Testing_project.Dtos;
 using Testing_project.Dtos.Dish;
 using Testing_project.Dtos.Ingredient;
-using Test.Core.Integration.Helpers;
 using static Test.Core.Integration.Helpers.ApiHelpers;
 
 namespace Test.Core.Integration.Dishes;
 
-/// <summary>
-/// Интеграционные тесты для создания блюд (POST /api/dishes)
-/// НЕИЗОЛИРОВАННАЯ среда: данные НЕ очищаются между тестами
-/// </summary>
 [Collection("Integration Tests")]
 public class CreateDishApiTests : IntegrationTestBase
 {
-    public CreateDishApiTests(ApiTestFixture fixture) : base(fixture) { }
-
-    #region A1. Эквивалентное разбиение — валидные данные
+    #region Валидные данные
 
     /// <summary>
     /// Создание блюда с валидными данными и явной категорией
@@ -50,6 +41,10 @@ public class CreateDishApiTests : IntegrationTestBase
         result!.Name.Should().Be("Картофельное пюре");
         result.Category.Should().Be(DishCategory.Side);
         result.Id.Should().BeGreaterThan(0);
+        
+        // Сохраняем для очистки
+        CreatedDishIds.Add(result.Id);
+        CreatedProductIds.Add(product.Id);
     }
 
     /// <summary>
@@ -86,6 +81,10 @@ public class CreateDishApiTests : IntegrationTestBase
         result.Should().NotBeNull();
         result!.Name.Should().Be(expectedCleanName); // Макрос удален
         result.Category.Should().Be(expectedCategory); // Категория определена автоматически
+        
+        // Сохраняем для очистки
+        CreatedDishIds.Add(result.Id);
+        CreatedProductIds.Add(product.Id);
     }
 
     /// <summary>
@@ -127,6 +126,10 @@ public class CreateDishApiTests : IntegrationTestBase
         result.FatsPerServing.Should().Be(30);
         result.CarbsPerServing.Should().Be(60);
         result.ServingSize.Should().Be(250);
+        
+        // Сохраняем для очистки
+        CreatedDishIds.Add(result.Id);
+        CreatedProductIds.Add(product.Id);
     }
 
     /// <summary>
@@ -157,6 +160,10 @@ public class CreateDishApiTests : IntegrationTestBase
         result.Should().NotBeNull();
         result!.Flags.Should().HaveFlag(ExtraFlag.Vegan);
         result.Flags.Should().HaveFlag(ExtraFlag.GlutenFree);
+        
+        // Сохраняем для очистки
+        CreatedDishIds.Add(result.Id);
+        CreatedProductIds.Add(product.Id);
     }
 
     /// <summary>
@@ -197,11 +204,15 @@ public class CreateDishApiTests : IntegrationTestBase
         result.Should().NotBeNull();
         result!.CaloriesPerServing.Should().BeApproximately(100 * productCount, 0.01);
         result.ServingSize.Should().Be(100 * productCount); // Сумма веса ингредиентов
+        
+        // Сохраняем для очистки
+        CreatedDishIds.Add(result.Id);
+        CreatedProductIds.AddRange(productIds);
     }
 
     #endregion
 
-    #region A2. Эквивалентное разбиение — невалидные данные (валидация)
+    #region Невалидные данные (валидация)
 
     /// <summary>
     /// Создание блюда с пустым названием — ошибка валидации
@@ -463,7 +474,7 @@ public class CreateDishApiTests : IntegrationTestBase
 
     #endregion
 
-    #region A3. Анализ граничных значений — КБЖУ
+    #region КБЖУ
 
     /// <summary>
     /// Создание блюда с калорийностью = 0 — граничное значение (валидно)
@@ -491,6 +502,10 @@ public class CreateDishApiTests : IntegrationTestBase
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
+        
+        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
+        CreatedDishIds.Add(result.Id);
+        CreatedProductIds.Add(product.Id);
     }
 
     /// <summary>
@@ -553,6 +568,10 @@ public class CreateDishApiTests : IntegrationTestBase
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
+        
+        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
+        CreatedDishIds.Add(result.Id);
+        CreatedProductIds.Add(product.Id);
     }
 
     /// <summary>
@@ -581,6 +600,10 @@ public class CreateDishApiTests : IntegrationTestBase
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
+        
+        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
+        CreatedDishIds.Add(result.Id);
+        CreatedProductIds.Add(product.Id);
     }
 
     /// <summary>
@@ -616,7 +639,7 @@ public class CreateDishApiTests : IntegrationTestBase
 
     #endregion
 
-    #region A4. Анализ граничных значений — количество ингредиентов
+    #region Количество ингредиентов
 
     /// <summary>
     /// Создание блюда с 1 ингредиентом — минимально валидно
@@ -635,6 +658,10 @@ public class CreateDishApiTests : IntegrationTestBase
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
+        
+        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
+        CreatedDishIds.Add(result.Id);
+        CreatedProductIds.Add(product.Id);
     }
 
     /// <summary>
@@ -673,11 +700,15 @@ public class CreateDishApiTests : IntegrationTestBase
         
         var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
         result!.Ingredients.Should().HaveCount(ingredientCount);
+        
+        // Сохраняем для очистки
+        CreatedDishIds.Add(result.Id);
+        CreatedProductIds.AddRange(productIds);
     }
 
     #endregion
 
-    #region A5. Флаги — конфликтные сценарии
+    #region Конфликтные сценарии
 
     /// <summary>
     /// Создание блюда с флагом Vegan, но ингредиент без флага — ошибка бизнес-логики
@@ -791,7 +822,7 @@ public class CreateDishApiTests : IntegrationTestBase
 
     #endregion
 
-    #region A6. Макросы — все типы
+    #region Макросы — все типы
 
     /// <summary>
     /// Создание блюда с несколькими макросами — применяется первый
@@ -816,6 +847,10 @@ public class CreateDishApiTests : IntegrationTestBase
         var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
         result!.Category.Should().Be(DishCategory.Dessert); // Первый макрос
         result.Name.Should().Be("Блюдо"); // Оба макроса удалены
+        
+        // Сохраняем для очистки
+        CreatedDishIds.Add(result.Id);
+        CreatedProductIds.Add(product.Id);
     }
 
     /// <summary>
@@ -847,6 +882,10 @@ public class CreateDishApiTests : IntegrationTestBase
         var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
         result!.Name.Should().Be("!неизвестный Блюдо"); // Макрос не удален
         result.Category.Should().Be(DishCategory.Side); // Явная категория сохранена
+        
+        // Сохраняем для очистки
+        CreatedDishIds.Add(result.Id);
+        CreatedProductIds.Add(product.Id);
     }
 
     #endregion
