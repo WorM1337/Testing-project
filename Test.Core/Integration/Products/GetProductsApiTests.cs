@@ -1,9 +1,7 @@
 using System.Net;
 using Core.Models.Enums;
 using FluentAssertions;
-using Test.Core.Integration.Helpers;
 using Testing_project.Dtos;
-using static Test.Core.Integration.Helpers.ApiHelpers;
 
 namespace Test.Core.Integration.Products;
 
@@ -21,16 +19,16 @@ public class GetProductsApiTests : IntegrationTestBase
         // Arrange: создаем несколько продуктов
         for (int i = 0; i < 3; i++)
         {
-            var createDto = TestDataBuilder.CreateProduct($"Продукт {i + 1}");
-            await Client.PostAsJsonAsync("/api/products", createDto);
+            await CreateProductAsync($"Продукт {i + 1}");
         }
 
         // Act
-        var products = await Client.GetFromJsonAsync<List<ProductDto>>("/api/products");
+        var getResult = await GetProductsAsync();
 
         // Assert
-        products.Should().NotBeNull();
-        products!.Should().HaveCountGreaterThanOrEqualTo(3);
+        getResult.IsSuccess.Should().BeTrue();
+        getResult.Content.Should().NotBeNull();
+        getResult.Content!.Should().HaveCountGreaterThanOrEqualTo(3);
     }
 
     /// <summary>
@@ -41,15 +39,15 @@ public class GetProductsApiTests : IntegrationTestBase
     {
         // Arrange: создаем продукт с уникальным названием
         var uniqueName = $"Уникальный продукт {Guid.NewGuid()}";
-        var createDto = TestDataBuilder.CreateProduct(uniqueName);
-        await Client.PostAsJsonAsync("/api/products", createDto);
+        await CreateProductAsync(uniqueName);
 
         // Act
-        var products = await Client.GetFromJsonAsync<List<ProductDto>>($"/api/products?search={uniqueName}");
+        var getResult = await GetProductsAsync($"?search={uniqueName}");
 
         // Assert
-        products.Should().NotBeNull();
-        products!.Should().ContainSingle(p => p.Name == uniqueName);
+        getResult.IsSuccess.Should().BeTrue();
+        getResult.Content.Should().NotBeNull();
+        getResult.Content!.Should().ContainSingle(p => p.Name == uniqueName);
     }
 
     /// <summary>
@@ -62,18 +60,18 @@ public class GetProductsApiTests : IntegrationTestBase
     public async Task GetProducts_FilterByCategory_ReturnsOnlyThatCategory(ProductCategory category)
     {
         // Arrange: создаем продукт нужной категории
-        var createDto = TestDataBuilder.CreateProduct(
+        await CreateProductAsync(
             name: $"Продукт категории {category}",
             category: category);
-        await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
 
         // Act
-        var products = await Client.GetFromJsonAsync<List<ProductDto>>($"/api/products?category={category}", JsonOptions);
+        var getResult = await GetProductsAsync($"?category={category}");
 
         // Assert
-        products.Should().NotBeNull();
-        products!.Should().NotBeEmpty();
-        products.Should().OnlyContain(p => p.Category == category);
+        getResult.IsSuccess.Should().BeTrue();
+        getResult.Content.Should().NotBeNull();
+        getResult.Content!.Should().NotBeEmpty();
+        getResult.Content.Should().OnlyContain(p => p.Category == category);
     }
 
     /// <summary>
@@ -83,11 +81,12 @@ public class GetProductsApiTests : IntegrationTestBase
     public async Task GetProducts_SortByCaloriesDescending_ReturnsSorted()
     {
         // Act
-        var products = await Client.GetFromJsonAsync<List<ProductDto>>("/api/products?sort=Calories&ascending=false");
+        var getResult = await GetProductsAsync("?sort=Calories&ascending=false");
 
         // Assert
-        products.Should().NotBeNull();
-        products!.Should().BeInDescendingOrder(p => p.CaloriesPer100g);
+        getResult.IsSuccess.Should().BeTrue();
+        getResult.Content.Should().NotBeNull();
+        getResult.Content!.Should().BeInDescendingOrder(p => p.CaloriesPer100g);
     }
 
     /// <summary>
@@ -97,18 +96,17 @@ public class GetProductsApiTests : IntegrationTestBase
     public async Task GetProduct_ExistingId_ReturnsOk()
     {
         // Arrange: создаем продукт
-        var createDto = TestDataBuilder.CreateProduct();
-        var created = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", createDto);
+        var createResult = await CreateProductAsync();
+        createResult.Content.Should().NotBeNull();
 
         // Act
-        var response = await Client.GetAsync($"/api/products/{created!.Id}");
+        var getResult = await GetProductAsync(createResult.Content!.Id);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        
-        var product = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
-        product.Should().NotBeNull();
-        product!.Id.Should().Be(created.Id);
+        getResult.IsSuccess.Should().BeTrue();
+        getResult.StatusCode.Should().Be(HttpStatusCode.OK);
+        getResult.Content.Should().NotBeNull();
+        getResult.Content!.Id.Should().Be(createResult.Content.Id);
     }
 
     /// <summary>
@@ -118,10 +116,11 @@ public class GetProductsApiTests : IntegrationTestBase
     public async Task GetProduct_NonExistentId_Returns404NotFound()
     {
         // Act
-        var response = await Client.GetAsync("/api/products/999999");
+        var getResult = await GetProductAsync(999999);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        getResult.IsSuccess.Should().BeFalse();
+        getResult.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     #endregion

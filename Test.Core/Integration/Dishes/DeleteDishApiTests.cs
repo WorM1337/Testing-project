@@ -1,8 +1,8 @@
 using System.Net;
+using Core.Models.Enums;
 using FluentAssertions;
-using Test.Core.Integration.Helpers;
-using Testing_project.Dtos;
 using Testing_project.Dtos.Dish;
+using Testing_project.Dtos.Ingredient;
 
 namespace Test.Core.Integration.Dishes;
 
@@ -18,21 +18,33 @@ public class DeleteDishApiTests : IntegrationTestBase
     public async Task DeleteDish_Existing_Returns204NoContent()
     {
         // Arrange: создаем блюдо
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
         
-        var createDto = TestDataBuilder.CreateDish(productId: product!.Id);
-        var created = await Client.PostAsync<CreateDishDto, DishDto>("/api/dishes", createDto);
+        var createDto = new CreateDishDto
+        {
+            Name = "Блюдо для удаления",
+            Category = DishCategory.Side,
+            Ingredients = new List<CreateIngredientDto>
+            {
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
+            }
+        };
+        
+        var createResult = await CreateDishAsync(createDto);
+        createResult.Content.Should().NotBeNull();
 
         // Act
-        var response = await Client.DeleteAsync($"/api/dishes/{created!.Id}");
+        var deleteResult = await DeleteDishAsync(createResult.Content.Id);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        deleteResult.IsSuccess.Should().BeTrue();
+        deleteResult.StatusCode.Should().Be(HttpStatusCode.NoContent);
         
         // Проверяем, что блюдо действительно удалено
-        var getResponse = await Client.GetAsync($"/api/dishes/{created.Id}");
-        getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var getResult = await GetDishAsync(createResult.Content.Id);
+        getResult.IsSuccess.Should().BeFalse();
+        getResult.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     /// <summary>
@@ -42,10 +54,11 @@ public class DeleteDishApiTests : IntegrationTestBase
     public async Task DeleteDish_NonExistent_Returns404NotFound()
     {
         // Act
-        var response = await Client.DeleteAsync("/api/dishes/999999");
+        var deleteResult = await DeleteDishAsync(999999);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        deleteResult.IsSuccess.Should().BeFalse();
+        deleteResult.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
     
     /// <summary>
@@ -55,13 +68,14 @@ public class DeleteDishApiTests : IntegrationTestBase
     [InlineData(0)]
     [InlineData(-1)]
     [InlineData(-1000)]
-    public async Task DeleteDish_InvalidId_Returns404NotFound(int id)
+    public async Task DeleteDish_InvalidId_Returns400BadRequest(int id)
     {
         // Act
-        var response = await Client.DeleteAsync($"/api/dishes/{id}");
+        var deleteResult = await DeleteDishAsync(id);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        deleteResult.IsSuccess.Should().BeFalse();
+        deleteResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     #endregion

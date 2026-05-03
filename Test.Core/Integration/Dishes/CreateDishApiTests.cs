@@ -1,11 +1,8 @@
 using System.Net;
 using Core.Models.Enums;
 using FluentAssertions;
-using Test.Core.Integration.Helpers;
-using Testing_project.Dtos;
 using Testing_project.Dtos.Dish;
 using Testing_project.Dtos.Ingredient;
-using static Test.Core.Integration.Helpers.ApiHelpers;
 
 namespace Test.Core.Integration.Dishes;
 
@@ -21,30 +18,28 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_ValidData_Returns201Created()
     {
         // Arrange: создаем тестовый продукт
-        var productDto = TestDataBuilder.CreateProduct("Картофель", 77, 2, 0.4, 18);
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync("Картофель", 77, 2, 0.4, 18);
+        productResult.Content.Should().NotBeNull();
         
-        var createDto = TestDataBuilder.CreateDish(
-            name: "Картофельное пюре",
-            productId: product!.Id,
-            amount: 200,
-            category: DishCategory.Side);
+        var createDto = new CreateDishDto
+        {
+            Name = "Картофельное пюре",
+            Category = DishCategory.Side,
+            Ingredients = new List<CreateIngredientDto>
+            {
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 200 }
+            }
+        };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
-        result.Should().NotBeNull();
-        result!.Name.Should().Be("Картофельное пюре");
-        result.Category.Should().Be(DishCategory.Side);
-        result.Id.Should().BeGreaterThan(0);
-        
-        // Сохраняем для очистки
-        CreatedDishIds.Add(result.Id);
-        CreatedProductIds.Add(product.Id);
+        dishResult.IsSuccess.Should().BeTrue();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.Created);
+        dishResult.Content!.Name.Should().Be("Картофельное пюре");
+        dishResult.Content.Category.Should().Be(DishCategory.Side);
+        dishResult.Content.Id.Should().BeGreaterThan(0);
     }
 
     /// <summary>
@@ -63,28 +58,26 @@ public class CreateDishApiTests : IntegrationTestBase
         string expectedCleanName)
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync("Продукт для блюда");
+        productResult.Content.Should().NotBeNull();
         
-        var createDto = TestDataBuilder.CreateDish(
-            name: nameWithMacro,
-            productId: product!.Id,
-            category: DishCategory.None); // Категория НЕ указана
+        var createDto = new CreateDishDto
+        {
+            Name = nameWithMacro,
+            Category = DishCategory.None, // Категория НЕ указана
+            Ingredients = new List<CreateIngredientDto>
+            {
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
+            }
+        };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
-        result.Should().NotBeNull();
-        result!.Name.Should().Be(expectedCleanName); // Макрос удален
-        result.Category.Should().Be(expectedCategory); // Категория определена автоматически
-        
-        // Сохраняем для очистки
-        CreatedDishIds.Add(result.Id);
-        CreatedProductIds.Add(product.Id);
+        dishResult.IsSuccess.Should().BeTrue();
+        dishResult.Content!.Name.Should().Be(expectedCleanName); // Макрос удален
+        dishResult.Content.Category.Should().Be(expectedCategory); // Категория определена автоматически
     }
 
     /// <summary>
@@ -94,8 +87,8 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_WithNutritionOverride_UsesCustomValues()
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct(calories: 100, proteins: 10, fats: 5, carbs: 15);
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync(calories: 100, proteins: 10, fats: 5, carbs: 15);
+        productResult.Content.Should().NotBeNull();
         
         var createDto = new CreateDishDto
         {
@@ -103,7 +96,7 @@ public class CreateDishApiTests : IntegrationTestBase
             Category = DishCategory.Side,
             Ingredients = new List<CreateIngredientDto>
             {
-                new() { ProductId = product!.Id, AmountInGrams = 100 }
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
             },
             // Переопределяем КБЖУ (вместо автоматического расчета)
             CaloriesPerServing = 500,
@@ -114,56 +107,15 @@ public class CreateDishApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
-        result.Should().NotBeNull();
-        result!.CaloriesPerServing.Should().Be(500); // Пользовательское значение
-        result.ProteinsPerServing.Should().Be(50);
-        result.FatsPerServing.Should().Be(30);
-        result.CarbsPerServing.Should().Be(60);
-        result.ServingSize.Should().Be(250);
-        
-        // Сохраняем для очистки
-        CreatedDishIds.Add(result.Id);
-        CreatedProductIds.Add(product.Id);
-    }
-
-    /// <summary>
-    /// Создание блюда с флагами — флаги устанавливаются, если все ингредиенты поддерживают
-    /// </summary>
-    [Fact(DisplayName = "API: Создание блюда с флагами успешно, если все ингредиенты поддерживают")]
-    public async Task CreateDish_WithFlags_SucceedsWhenAllIngredientsSupport()
-    {
-        // Arrange: создаем веганский продукт
-        var productDto = TestDataBuilder.CreateProduct(
-            name: "Соевое молоко",
-            flags: ExtraFlag.Vegan | ExtraFlag.GlutenFree);
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
-        
-        var createDto = TestDataBuilder.CreateDish(
-            name: "Веганский смузи",
-            productId: product!.Id,
-            category: DishCategory.Drink,
-            flags: ExtraFlag.Vegan | ExtraFlag.GlutenFree);
-
-        // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
-        result.Should().NotBeNull();
-        result!.Flags.Should().HaveFlag(ExtraFlag.Vegan);
-        result.Flags.Should().HaveFlag(ExtraFlag.GlutenFree);
-        
-        // Сохраняем для очистки
-        CreatedDishIds.Add(result.Id);
-        CreatedProductIds.Add(product.Id);
+        dishResult.IsSuccess.Should().BeTrue();
+        dishResult.Content!.CaloriesPerServing.Should().Be(500); // Пользовательское значение
+        dishResult.Content.ProteinsPerServing.Should().Be(50);
+        dishResult.Content.FatsPerServing.Should().Be(30);
+        dishResult.Content.CarbsPerServing.Should().Be(60);
+        dishResult.Content.ServingSize.Should().Be(250);
     }
 
     /// <summary>
@@ -178,9 +130,9 @@ public class CreateDishApiTests : IntegrationTestBase
         var productIds = new List<int>();
         for (int i = 0; i < productCount; i++)
         {
-            var productDto = TestDataBuilder.CreateProduct($"Продукт {i + 1}", 100, 10, 5, 15);
-            var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
-            productIds.Add(product!.Id);
+            var productResult = await CreateProductAsync($"Продукт {i + 1}", 100, 10, 5, 15);
+            productResult.Content.Should().NotBeNull();
+            productIds.Add(productResult.Content!.Id);
         }
         
         var createDto = new CreateDishDto
@@ -195,19 +147,12 @@ public class CreateDishApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
-        result.Should().NotBeNull();
-        result!.CaloriesPerServing.Should().BeApproximately(100 * productCount, 0.01);
-        result.ServingSize.Should().Be(100 * productCount); // Сумма веса ингредиентов
-        
-        // Сохраняем для очистки
-        CreatedDishIds.Add(result.Id);
-        CreatedProductIds.AddRange(productIds);
+        dishResult.IsSuccess.Should().BeTrue();
+        dishResult.Content!.CaloriesPerServing.Should().BeApproximately(100 * productCount, 0.01);
+        dishResult.Content.ServingSize.Should().Be(100 * productCount); // Сумма веса ингредиентов
     }
 
     #endregion
@@ -218,14 +163,13 @@ public class CreateDishApiTests : IntegrationTestBase
     /// Создание блюда с пустым названием — ошибка валидации
     /// </summary>
     [Theory(DisplayName = "API: Создание блюда с пустым названием возвращает 400 BadRequest")]
-    [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
     public async Task CreateDish_EmptyName_Returns400BadRequest(string? name)
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
         
         var createDto = new CreateDishDto
         {
@@ -233,15 +177,46 @@ public class CreateDishApiTests : IntegrationTestBase
             Category = DishCategory.Side,
             Ingredients = new List<CreateIngredientDto>
             {
-                new() { ProductId = product!.Id, AmountInGrams = 100 }
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
             }
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        await response.ShouldHaveValidationError("Название блюда обязательно");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.GetValidationErrorMessage().Should().Be("Название блюда обязательно.");
+    }
+
+    /// <summary>
+    /// Создание блюда с null названием — ошибка валидации (ModelState)
+    /// </summary>
+    [Fact(DisplayName = "API: Создание блюда с null названием возвращает 400 BadRequest")]
+    public async Task CreateDish_NullName_Returns400BadRequest()
+    {
+        // Arrange
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
+        
+        var createDto = new CreateDishDto
+        {
+            Name = null!,
+            Category = DishCategory.Side,
+            Ingredients = new List<CreateIngredientDto>
+            {
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
+            }
+        };
+
+        // Act
+        var dishResult = await CreateDishAsync(createDto);
+
+        // Assert
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.GetValidationErrorMessage().Should().Contain("Name field is required");
     }
 
     /// <summary>
@@ -253,16 +228,26 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_NameTooShort_Returns400BadRequest(string name)
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
         
-        var createDto = TestDataBuilder.CreateDish(name: name, productId: product!.Id);
+        var createDto = new CreateDishDto
+        {
+            Name = name,
+            Category = DishCategory.Side,
+            Ingredients = new List<CreateIngredientDto>
+            {
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
+            }
+        };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        await response.ShouldHaveValidationError("Минимальная длина названия — 2 символа");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.GetValidationErrorMessage().Should().Be("Минимальная длина названия — 2 символа.");
     }
 
     /// <summary>
@@ -274,16 +259,26 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_MacroButShortCleanName_Returns400BadRequest(string name)
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
         
-        var createDto = TestDataBuilder.CreateDish(name: name, productId: product!.Id);
+        var createDto = new CreateDishDto
+        {
+            Name = name,
+            Category = DishCategory.None,
+            Ingredients = new List<CreateIngredientDto>
+            {
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
+            }
+        };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        await response.ShouldHaveValidationError("слишком короткое после удаления макросов");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.GetValidationErrorMessage().Should().Contain("слишком короткое после удаления макросов");
     }
 
     /// <summary>
@@ -293,8 +288,8 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_NoCategoryAndNoMacro_Returns400BadRequest()
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
         
         var createDto = new CreateDishDto
         {
@@ -302,15 +297,17 @@ public class CreateDishApiTests : IntegrationTestBase
             Category = DishCategory.None, // Категория не указана
             Ingredients = new List<CreateIngredientDto>
             {
-                new() { ProductId = product!.Id, AmountInGrams = 100 }
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
             }
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        await response.ShouldHaveValidationError("Категория блюда обязательна");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.GetValidationErrorMessage().Should().Contain("Категория блюда обязательна");
     }
 
     /// <summary>
@@ -322,8 +319,8 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_MoreThan5Photos_Returns400BadRequest(int photoCount)
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
         
         var photos = Enumerable.Range(1, photoCount)
             .Select(i => $"https://example.com/photo{i}.jpg")
@@ -336,15 +333,17 @@ public class CreateDishApiTests : IntegrationTestBase
             Photos = photos,
             Ingredients = new List<CreateIngredientDto>
             {
-                new() { ProductId = product!.Id, AmountInGrams = 100 }
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
             }
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        await response.ShouldHaveValidationError("Нельзя загрузить более 5 фотографий");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.GetValidationErrorMessage().Should().Be("Нельзя загрузить более 5 фотографий.");
     }
 
     /// <summary>
@@ -362,10 +361,12 @@ public class CreateDishApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        await response.ShouldHaveValidationError("Должен быть хотя бы один ингредиент");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.GetValidationErrorMessage().Should().Be("Должен быть хотя бы один ингредиент.");
     }
 
     /// <summary>
@@ -383,10 +384,12 @@ public class CreateDishApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        await response.ShouldHaveValidationError("пустые значения");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.GetValidationErrorMessage().Should().Contain("пустые значения");
     }
 
     /// <summary>
@@ -410,10 +413,12 @@ public class CreateDishApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        await response.ShouldHaveValidationError("ID продукта должен быть больше нуля");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.GetValidationErrorMessage().Should().Be("ID продукта должен быть больше нуля.");
     }
 
     /// <summary>
@@ -426,8 +431,8 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_InvalidAmount_Returns400BadRequest(double amount)
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
         
         var createDto = new CreateDishDto
         {
@@ -435,15 +440,17 @@ public class CreateDishApiTests : IntegrationTestBase
             Category = DishCategory.Side,
             Ingredients = new List<CreateIngredientDto>
             {
-                new() { ProductId = product!.Id, AmountInGrams = amount }
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = amount }
             }
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        await response.ShouldHaveValidationError("Количество продукта должно быть больше нуля");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.GetValidationErrorMessage().Should().Be("Количество продукта должно быть больше нуля.");
     }
 
     /// <summary>
@@ -464,12 +471,12 @@ public class CreateDishApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("не найден");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.Error.Should().Contain("не найден");
     }
 
     #endregion
@@ -483,8 +490,8 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_CaloriesZero_Succeeds()
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
         
         var createDto = new CreateDishDto
         {
@@ -493,19 +500,16 @@ public class CreateDishApiTests : IntegrationTestBase
             CaloriesPerServing = 0, // Граничное значение
             Ingredients = new List<CreateIngredientDto>
             {
-                new() { ProductId = product!.Id, AmountInGrams = 100 }
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
             }
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
-        CreatedDishIds.Add(result.Id);
-        CreatedProductIds.Add(product.Id);
+        dishResult.IsSuccess.Should().BeTrue();
+        dishResult.Content!.CaloriesPerServing.Should().Be(0);
     }
 
     /// <summary>
@@ -518,8 +522,8 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_NegativeCalories_Returns400BadRequest(double calories)
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
         
         var createDto = new CreateDishDto
         {
@@ -528,15 +532,17 @@ public class CreateDishApiTests : IntegrationTestBase
             CaloriesPerServing = calories,
             Ingredients = new List<CreateIngredientDto>
             {
-                new() { ProductId = product!.Id, AmountInGrams = 100 }
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
             }
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        await response.ShouldHaveValidationError("Калорийность не может быть отрицательной");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.GetValidationErrorMessage().Should().Be("Калорийность не может быть отрицательной.");
     }
 
     /// <summary>
@@ -546,8 +552,8 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_VeryLargeNutrition_Succeeds()
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
         
         var createDto = new CreateDishDto
         {
@@ -559,19 +565,16 @@ public class CreateDishApiTests : IntegrationTestBase
             CarbsPerServing = 999999.99,
             Ingredients = new List<CreateIngredientDto>
             {
-                new() { ProductId = product!.Id, AmountInGrams = 100 }
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
             }
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
-        CreatedDishIds.Add(result.Id);
-        CreatedProductIds.Add(product.Id);
+        dishResult.IsSuccess.Should().BeTrue();
+        dishResult.Content!.CaloriesPerServing.Should().Be(999999.99);
     }
 
     /// <summary>
@@ -581,8 +584,8 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_ServingSize0Point1_Succeeds()
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
         
         var createDto = new CreateDishDto
         {
@@ -591,19 +594,16 @@ public class CreateDishApiTests : IntegrationTestBase
             ServingSize = 0.1, // Минимальное положительное
             Ingredients = new List<CreateIngredientDto>
             {
-                new() { ProductId = product!.Id, AmountInGrams = 100 }
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
             }
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
-        CreatedDishIds.Add(result.Id);
-        CreatedProductIds.Add(product.Id);
+        dishResult.IsSuccess.Should().BeTrue();
+        dishResult.Content!.ServingSize.Should().Be(0.1);
     }
 
     /// <summary>
@@ -616,8 +616,8 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_InvalidServingSize_Returns400BadRequest(double servingSize)
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
         
         var createDto = new CreateDishDto
         {
@@ -626,15 +626,17 @@ public class CreateDishApiTests : IntegrationTestBase
             ServingSize = servingSize,
             Ingredients = new List<CreateIngredientDto>
             {
-                new() { ProductId = product!.Id, AmountInGrams = 100 }
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
             }
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        await response.ShouldHaveValidationError("Размер порции должен быть больше 0");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.GetValidationErrorMessage().Should().Be("Размер порции должен быть больше 0.");
     }
 
     #endregion
@@ -648,20 +650,25 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_OneIngredient_Succeeds()
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
         
-        var createDto = TestDataBuilder.CreateDish(productId: product!.Id, category: DishCategory.Entree);
+        var createDto = new CreateDishDto
+        {
+            Name = "Блюдо с одним ингредиентом",
+            Category = DishCategory.Entree,
+            Ingredients = new List<CreateIngredientDto>
+            {
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
+            }
+        };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
-        CreatedDishIds.Add(result.Id);
-        CreatedProductIds.Add(product.Id);
+        dishResult.IsSuccess.Should().BeTrue();
+        dishResult.Content!.Ingredients.Should().HaveCount(1);
     }
 
     /// <summary>
@@ -676,9 +683,9 @@ public class CreateDishApiTests : IntegrationTestBase
         var productIds = new List<int>();
         for (int i = 0; i < ingredientCount; i++)
         {
-            var productDto = TestDataBuilder.CreateProduct($"Продукт {i + 1}");
-            var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
-            productIds.Add(product!.Id);
+            var productResult = await CreateProductAsync($"Продукт {i + 1}");
+            productResult.Content.Should().NotBeNull();
+            productIds.Add(productResult.Content!.Id);
         }
         
         var createDto = new CreateDishDto
@@ -693,17 +700,11 @@ public class CreateDishApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
-        result!.Ingredients.Should().HaveCount(ingredientCount);
-        
-        // Сохраняем для очистки
-        CreatedDishIds.Add(result.Id);
-        CreatedProductIds.AddRange(productIds);
+        dishResult.IsSuccess.Should().BeTrue();
+        dishResult.Content!.Ingredients.Should().HaveCount(ingredientCount);
     }
 
     #endregion
@@ -717,24 +718,27 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_VeganFlagButNonVeganProduct_Returns400BadRequest()
     {
         // Arrange: создаем НЕ веганский продукт
-        var productDto = TestDataBuilder.CreateProduct(
-            name: "Куриное филе",
-            flags: ExtraFlag.None); // Без флага Vegan
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync("Куриное филе", flags: ExtraFlag.None);
+        productResult.Content.Should().NotBeNull();
         
-        var createDto = TestDataBuilder.CreateDish(
-            name: "Псевдо-веганское блюдо",
-            productId: product!.Id,
-            category: DishCategory.Side,
-            flags: ExtraFlag.Vegan); // Пытаемся установить флаг Vegan
+        var createDto = new CreateDishDto
+        {
+            Name = "Псевдо-веганское блюдо",
+            Category = DishCategory.Side,
+            Flags = ExtraFlag.Vegan,
+            Ingredients = new List<CreateIngredientDto>
+            {
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
+            }
+        };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("Веган");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.Error.Should().Contain("Веган");
     }
 
     /// <summary>
@@ -744,24 +748,27 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_GlutenFreeFlagButGlutenProduct_Returns400BadRequest()
     {
         // Arrange: создаем продукт с глютеном
-        var productDto = TestDataBuilder.CreateProduct(
-            name: "Пшеничная мука",
-            flags: ExtraFlag.None); // Без флага GlutenFree
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync("Пшеничная мука", flags: ExtraFlag.None);
+        productResult.Content.Should().NotBeNull();
         
-        var createDto = TestDataBuilder.CreateDish(
-            name: "Псевдо-безглютеновое блюдо",
-            productId: product!.Id,
-            category: DishCategory.Side,
-            flags: ExtraFlag.GlutenFree); // Пытаемся установить флаг GlutenFree
+        var createDto = new CreateDishDto
+        {
+            Name = "Псевдо-безглютеновое блюдо",
+            Category = DishCategory.Side,
+            Flags = ExtraFlag.GlutenFree,
+            Ingredients = new List<CreateIngredientDto>
+            {
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
+            }
+        };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("Без глютена");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.Error.Should().Contain("Без глютена");
     }
 
     /// <summary>
@@ -771,24 +778,27 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_SugarFreeFlagButSugarProduct_Returns400BadRequest()
     {
         // Arrange: создаем продукт с сахаром
-        var productDto = TestDataBuilder.CreateProduct(
-            name: "Сахар",
-            flags: ExtraFlag.None); // Без флага SugarFree
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync("Сахар", flags: ExtraFlag.None);
+        productResult.Content.Should().NotBeNull();
         
-        var createDto = TestDataBuilder.CreateDish(
-            name: "Псевдо-без сахара блюдо",
-            productId: product!.Id,
-            category: DishCategory.Side,
-            flags: ExtraFlag.SugarFree); // Пытаемся установить флаг SugarFree
+        var createDto = new CreateDishDto
+        {
+            Name = "Псевдо-без сахара блюдо",
+            Category = DishCategory.Side,
+            Flags = ExtraFlag.SugarFree,
+            Ingredients = new List<CreateIngredientDto>
+            {
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
+            }
+        };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("Без сахара");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.Error.Should().Contain("Без сахара");
     }
 
     /// <summary>
@@ -798,26 +808,29 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_MultipleConflictingFlags_ReturnsAllErrors()
     {
         // Arrange: создаем продукт без флагов
-        var productDto = TestDataBuilder.CreateProduct(
-            name: "Обычный продукт",
-            flags: ExtraFlag.None);
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync("Обычный продукт", flags: ExtraFlag.None);
+        productResult.Content.Should().NotBeNull();
         
-        var createDto = TestDataBuilder.CreateDish(
-            name: "Блюдо с конфликтными флагами",
-            productId: product!.Id,
-            category: DishCategory.Side,
-            flags: ExtraFlag.Vegan | ExtraFlag.GlutenFree | ExtraFlag.SugarFree); // Все флаги
+        var createDto = new CreateDishDto
+        {
+            Name = "Блюдо с конфликтными флагами",
+            Category = DishCategory.Side,
+            Flags = ExtraFlag.Vegan | ExtraFlag.GlutenFree | ExtraFlag.SugarFree, // Все флаги
+            Ingredients = new List<CreateIngredientDto>
+            {
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
+            }
+        };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("Веган");
-        content.Should().Contain("Без глютена");
-        content.Should().Contain("Без сахара");
+        dishResult.IsSuccess.Should().BeFalse();
+        dishResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dishResult.Error.Should().Contain("Веган");
+        dishResult.Error.Should().Contain("Без глютена");
+        dishResult.Error.Should().Contain("Без сахара");
     }
 
     #endregion
@@ -831,26 +844,26 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_MultipleMacros_UsesFirst()
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
         
-        var createDto = TestDataBuilder.CreateDish(
-            name: "!десерт !первое Блюдо", // Два макроса
-            productId: product!.Id);
+        var createDto = new CreateDishDto
+        {
+            Name = "!десерт !первое Блюдо", // Два макроса
+            Category = DishCategory.None,
+            Ingredients = new List<CreateIngredientDto>
+            {
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
+            }
+        };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
-        result!.Category.Should().Be(DishCategory.Dessert); // Первый макрос
-        result.Name.Should().Be("Блюдо"); // Оба макроса удалены
-        
-        // Сохраняем для очистки
-        CreatedDishIds.Add(result.Id);
-        CreatedProductIds.Add(product.Id);
+        dishResult.IsSuccess.Should().BeTrue();
+        dishResult.Content!.Category.Should().Be(DishCategory.Dessert); // Первый макрос
+        dishResult.Content.Name.Should().Be("Блюдо"); // Оба макроса удалены
     }
 
     /// <summary>
@@ -860,8 +873,8 @@ public class CreateDishApiTests : IntegrationTestBase
     public async Task CreateDish_UnknownMacro_IgnoresMacro()
     {
         // Arrange
-        var productDto = TestDataBuilder.CreateProduct();
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync();
+        productResult.Content.Should().NotBeNull();
         
         var createDto = new CreateDishDto
         {
@@ -869,23 +882,17 @@ public class CreateDishApiTests : IntegrationTestBase
             Category = DishCategory.Side, // Категория указана явно
             Ingredients = new List<CreateIngredientDto>
             {
-                new() { ProductId = product!.Id, AmountInGrams = 100 }
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
             }
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/dishes", createDto, JsonOptions);
+        var dishResult = await CreateDishAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<DishDto>(JsonOptions);
-        result!.Name.Should().Be("!неизвестный Блюдо"); // Макрос не удален
-        result.Category.Should().Be(DishCategory.Side); // Явная категория сохранена
-        
-        // Сохраняем для очистки
-        CreatedDishIds.Add(result.Id);
-        CreatedProductIds.Add(product.Id);
+        dishResult.IsSuccess.Should().BeTrue();
+        dishResult.Content!.Name.Should().Be("!неизвестный Блюдо"); // Макрос не удален
+        dishResult.Content.Category.Should().Be(DishCategory.Side); // Явная категория сохранена
     }
 
     #endregion

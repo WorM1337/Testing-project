@@ -1,8 +1,8 @@
 using System.Net;
+using Core.Models.Enums;
 using FluentAssertions;
-using Test.Core.Integration.Helpers;
-using Testing_project.Dtos;
 using Testing_project.Dtos.Dish;
+using Testing_project.Dtos.Ingredient;
 
 namespace Test.Core.Integration.Products;
 
@@ -18,18 +18,19 @@ public class DeleteProductApiTests : IntegrationTestBase
     public async Task DeleteProduct_UnusedProduct_Returns204NoContent()
     {
         // Arrange: создаем продукт
-        var createDto = TestDataBuilder.CreateProduct("Продукт для удаления");
-        var created = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", createDto);
+        var createResult = await CreateProductAsync("Продукт для удаления");
 
         // Act
-        var response = await Client.DeleteAsync($"/api/products/{created!.Id}");
+        var deleteResult = await DeleteProductAsync(createResult.Content!.Id);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        deleteResult.IsSuccess.Should().BeTrue();
+        deleteResult.StatusCode.Should().Be(HttpStatusCode.NoContent);
         
         // Проверяем, что продукт действительно удален
-        var getResponse = await Client.GetAsync($"/api/products/{created.Id}");
-        getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var getResult = await GetProductAsync(createResult.Content.Id);
+        getResult.IsSuccess.Should().BeFalse();
+        getResult.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     /// <summary>
@@ -39,10 +40,11 @@ public class DeleteProductApiTests : IntegrationTestBase
     public async Task DeleteProduct_NonExistent_Returns404NotFound()
     {
         // Act
-        var response = await Client.DeleteAsync("/api/products/999999");
+        var deleteResult = await DeleteProductAsync(999999);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        deleteResult.IsSuccess.Should().BeFalse();
+        deleteResult.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     /// <summary>
@@ -52,16 +54,16 @@ public class DeleteProductApiTests : IntegrationTestBase
     public async Task DeleteProduct_AlreadyDeleted_Returns404NotFound()
     {
         // Arrange: создаем и удаляем продукт
-        var createDto = TestDataBuilder.CreateProduct("Продукт для повторного удаления");
-        var created = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", createDto);
+        var createResult = await CreateProductAsync("Продукт для повторного удаления");
         
-        await Client.DeleteAsync($"/api/products/{created!.Id}");
+        await DeleteProductAsync(createResult.Content!.Id);
 
         // Act: пытаемся удалить снова
-        var response = await Client.DeleteAsync($"/api/products/{created.Id}");
+        var deleteResult = await DeleteProductAsync(createResult.Content.Id);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        deleteResult.IsSuccess.Should().BeFalse();
+        deleteResult.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     /// <summary>
@@ -73,10 +75,11 @@ public class DeleteProductApiTests : IntegrationTestBase
     public async Task DeleteProduct_InvalidId_Returns404NotFound(int id)
     {
         // Act
-        var response = await Client.DeleteAsync($"/api/products/{id}");
+        var deleteResult = await DeleteProductAsync(id);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        deleteResult.IsSuccess.Should().BeFalse();
+        deleteResult.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     /// <summary>
@@ -86,22 +89,30 @@ public class DeleteProductApiTests : IntegrationTestBase
     public async Task DeleteProduct_UsedInDish_Returns400BadRequest()
     {
         // Arrange: создаем продукт и блюдо с этим продуктом
-        var productDto = TestDataBuilder.CreateProduct("Продукт в блюде");
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync("Продукт в блюде");
+        productResult.Content.Should().NotBeNull();
         
-        var dishDto = TestDataBuilder.CreateDish(
-            name: "Блюдо с продуктом",
-            productId: product!.Id);
-        await Client.PostAsJsonAsync("/api/dishes", dishDto);
+        var createDishDto = new CreateDishDto
+        {
+            Name = "Блюдо с продуктом",
+            Category = DishCategory.Side,
+            Ingredients = new List<CreateIngredientDto>
+            {
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
+            }
+        };
+        
+        var dishResult = await CreateDishAsync(createDishDto);
+        dishResult.Content.Should().NotBeNull();
 
         // Act: пытаемся удалить продукт
-        var response = await Client.DeleteAsync($"/api/products/{product.Id}");
+        var deleteResult = await DeleteProductAsync(productResult.Content.Id);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        deleteResult.IsSuccess.Should().BeFalse();
+        deleteResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("используется в блюдах");
+        deleteResult.GetValidationErrorMessage().Should().Contain("используется в блюдах");
     }
 
     /// <summary>
@@ -111,29 +122,37 @@ public class DeleteProductApiTests : IntegrationTestBase
     public async Task DeleteProduct_UsedInMultipleDishes_ReturnsAllDishNames()
     {
         // Arrange: создаем продукт и несколько блюд с этим продуктом
-        var productDto = TestDataBuilder.CreateProduct("Популярный продукт");
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync("Популярный продукт");
+        productResult.Content.Should().NotBeNull();
         
         var dishNames = new[] { "Блюдо 1", "Блюдо 2", "Блюдо 3" };
         foreach (var dishName in dishNames)
         {
-            var dishDto = TestDataBuilder.CreateDish(
-                name: dishName,
-                productId: product!.Id);
-            await Client.PostAsJsonAsync("/api/dishes", dishDto);
+            var createDishDto = new CreateDishDto
+            {
+                Name = dishName,
+                Category = DishCategory.Side,
+                Ingredients = new List<CreateIngredientDto>
+                {
+                    new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
+                }
+            };
+            
+            await CreateDishAsync(createDishDto);
         }
 
         // Act: пытаемся удалить продукт
-        var response = await Client.DeleteAsync($"/api/products/{product!.Id}");
+        var deleteResult = await DeleteProductAsync(productResult.Content.Id);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        deleteResult.IsSuccess.Should().BeFalse();
+        deleteResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("используется в блюдах");
+        var errorMessage = deleteResult.GetValidationErrorMessage();
+        errorMessage.Should().Contain("используется в блюдах");
         foreach (var dishName in dishNames)
         {
-            content.Should().Contain(dishName);
+            errorMessage.Should().Contain(dishName);
         }
     }
 
@@ -144,20 +163,31 @@ public class DeleteProductApiTests : IntegrationTestBase
     public async Task DeleteProduct_AfterDeletingDishes_Succeeds()
     {
         // Arrange: создаем продукт и блюдо
-        var productDto = TestDataBuilder.CreateProduct("Продукт с блюдом");
-        var product = await Client.PostAsync<CreateProductDto, ProductDto>("/api/products", productDto);
+        var productResult = await CreateProductAsync("Продукт с блюдом");
+        productResult.Content.Should().NotBeNull();
         
-        var dishDto = TestDataBuilder.CreateDish(productId: product!.Id);
-        var dish = await Client.PostAsync<CreateDishDto, DishDto>("/api/dishes", dishDto);
+        var createDishDto = new CreateDishDto
+        {
+            Name = "Блюдо для удаления",
+            Category = DishCategory.Side,
+            Ingredients = new List<CreateIngredientDto>
+            {
+                new() { ProductId = productResult.Content!.Id, AmountInGrams = 100 }
+            }
+        };
+        
+        var dishResult = await CreateDishAsync(createDishDto);
+        dishResult.Content.Should().NotBeNull();
         
         // Удаляем блюдо
-        await Client.DeleteAsync($"/api/dishes/{dish!.Id}");
+        await DeleteDishAsync(dishResult.Content.Id);
 
         // Act: теперь можем удалить продукт
-        var response = await Client.DeleteAsync($"/api/products/{product.Id}");
+        var deleteResult = await DeleteProductAsync(productResult.Content.Id);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        deleteResult.IsSuccess.Should().BeTrue();
+        deleteResult.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
     #endregion

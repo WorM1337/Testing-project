@@ -3,7 +3,6 @@ using Core.Models.Enums;
 using FluentAssertions;
 using Test.Core.Integration.Helpers;
 using Testing_project.Dtos;
-using static Test.Core.Integration.Helpers.ApiHelpers;
 
 namespace Test.Core.Integration.Products;
 
@@ -18,8 +17,8 @@ public class CreateProductApiTests : IntegrationTestBase
     [Fact(DisplayName = "API: Создание валидного продукта возвращает 201 Created")]
     public async Task CreateProduct_ValidData_Returns201Created()
     {
-        // Arrange
-        var createDto = TestDataBuilder.CreateProduct(
+        // Act
+        var result = await CreateProductAsync(
             name: "Тестовый продукт",
             calories: 100,
             proteins: 10,
@@ -27,24 +26,17 @@ public class CreateProductApiTests : IntegrationTestBase
             carbs: 15,
             category: ProductCategory.Vegetables);
 
-        // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
-
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
-        result.Should().NotBeNull();
-        result!.Name.Should().Be(createDto.Name);
-        result.CaloriesPer100g.Should().Be(100);
-        result.ProteinsPer100g.Should().Be(10);
-        result.FatsPer100g.Should().Be(5);
-        result.CarbsPer100g.Should().Be(15);
-        result.Category.Should().Be(ProductCategory.Vegetables);
-        result.Id.Should().BeGreaterThan(0);
-        
-        // Сохраняем для очистки
-        CreatedProductIds.Add(result.Id);
+        result.IsSuccess.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.Created);
+        result.Content.Should().NotBeNull();
+        result.Content!.Name.Should().Be("Тестовый продукт");
+        result.Content.CaloriesPer100g.Should().Be(100);
+        result.Content.ProteinsPer100g.Should().Be(10);
+        result.Content.FatsPer100g.Should().Be(5);
+        result.Content.CarbsPer100g.Should().Be(15);
+        result.Content.Category.Should().Be(ProductCategory.Vegetables);
+        result.Content.Id.Should().BeGreaterThan(0);
     }
 
     /// <summary>
@@ -56,20 +48,15 @@ public class CreateProductApiTests : IntegrationTestBase
     [InlineData(ExtraFlag.SugarFree)]
     public async Task CreateProduct_WithSingleFlag_Succeeds(ExtraFlag flag)
     {
-        // Arrange
-        var createDto = TestDataBuilder.CreateProduct(
+        // Act
+        var result = await CreateProductAsync(
             name: $"Продукт с флагом {flag}",
             flags: flag);
 
-        // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
-
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
-        result!.Flags.Should().HaveFlag(flag);
-        CreatedProductIds.Add(result.Id);
+        result.IsSuccess.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.Created);
+        result.Content!.Flags.Should().HaveFlag(flag);
     }
 
     /// <summary>
@@ -80,21 +67,18 @@ public class CreateProductApiTests : IntegrationTestBase
     {
         // Arrange
         var flags = ExtraFlag.Vegan | ExtraFlag.GlutenFree | ExtraFlag.SugarFree;
-        var createDto = TestDataBuilder.CreateProduct(
+
+        // Act
+        var result = await CreateProductAsync(
             name: "Продукт со всеми флагами",
             flags: flags);
 
-        // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
-
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
-        result!.Flags.Should().HaveFlag(ExtraFlag.Vegan);
-        result.Flags.Should().HaveFlag(ExtraFlag.GlutenFree);
-        result.Flags.Should().HaveFlag(ExtraFlag.SugarFree);
-        CreatedProductIds.Add(result.Id);
+        result.IsSuccess.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.Created);
+        result.Content!.Flags.Should().HaveFlag(ExtraFlag.Vegan);
+        result.Content.Flags.Should().HaveFlag(ExtraFlag.GlutenFree);
+        result.Content.Flags.Should().HaveFlag(ExtraFlag.SugarFree);
     }
 
     /// <summary>
@@ -116,13 +100,11 @@ public class CreateProductApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
-        CreatedProductIds.Add(result.Id);
+        result.IsSuccess.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
     /// <summary>
@@ -152,14 +134,12 @@ public class CreateProductApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
-        result!.Photos.Should().HaveCount(photoCount);
-        CreatedProductIds.Add(result.Id);
+        result.IsSuccess.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.Created);
+        result.Content!.Photos.Should().HaveCount(photoCount);
     }
 
     /// <summary>
@@ -182,14 +162,12 @@ public class CreateProductApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
-        result!.Composition.Should().Be("Вода, соль, специи");
-        CreatedProductIds.Add(result.Id);
+        result.IsSuccess.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.Created);
+        result.Content!.Composition.Should().Be("Вода, соль, специи");
     }
 
     /// <summary>
@@ -207,20 +185,15 @@ public class CreateProductApiTests : IntegrationTestBase
     [InlineData(ProductCategory.Sweets)]
     public async Task CreateProduct_AllCategories_Succeeds(ProductCategory category)
     {
-        // Arrange
-        var createDto = TestDataBuilder.CreateProduct(
+        // Act
+        var result = await CreateProductAsync(
             name: $"Продукт категории {category}",
             category: category);
 
-        // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
-
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
-        result!.Category.Should().Be(category);
-        CreatedProductIds.Add(result.Id);
+        result.IsSuccess.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.Created);
+        result.Content!.Category.Should().Be(category);
     }
 
     /// <summary>
@@ -245,14 +218,12 @@ public class CreateProductApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
-        result!.CookingRequirement.Should().Be(cookingRequirement);
-        CreatedProductIds.Add(result.Id);
+        result.IsSuccess.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.Created);
+        result.Content!.CookingRequirement.Should().Be(cookingRequirement);
     }
 
     #endregion
@@ -263,7 +234,6 @@ public class CreateProductApiTests : IntegrationTestBase
     /// Создание продукта с пустым названием — ошибка валидации
     /// </summary>
     [Theory(DisplayName = "API: Создание продукта с пустым названием возвращает 400 BadRequest")]
-    [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
     public async Task CreateProduct_EmptyName_Returns400BadRequest(string? name)
@@ -281,10 +251,39 @@ public class CreateProductApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(createDto);
 
         // Assert
-        await response.ShouldHaveValidationError("Название продукта обязательно");
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        result.GetValidationErrorMessage().Should().Contain("Название продукта обязательно");
+    }
+
+    /// <summary>
+    /// Создание продукта с null названием — ошибка валидации (ModelState)
+    /// </summary>
+    [Fact(DisplayName = "API: Создание продукта с null названием возвращает 400 BadRequest")]
+    public async Task CreateProduct_NullName_Returns400BadRequest()
+    {
+        // Arrange
+        var createDto = new CreateProductDto
+        {
+            Name = null!,
+            CaloriesPer100g = 100,
+            ProteinsPer100g = 10,
+            FatsPer100g = 5,
+            CarbsPer100g = 15,
+            Category = ProductCategory.Vegetables,
+            CookingRequirement = CookingRequirement.ReadyToUse
+        };
+
+        // Act
+        var result = await CreateProductAsync(createDto);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        result.GetValidationErrorMessage().Should().Contain("Name field is required");
     }
 
     /// <summary>
@@ -295,14 +294,13 @@ public class CreateProductApiTests : IntegrationTestBase
     [InlineData("Б")]
     public async Task CreateProduct_NameTooShort_Returns400BadRequest(string name)
     {
-        // Arrange
-        var createDto = TestDataBuilder.CreateProduct(name: name);
-
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(name: name);
 
         // Assert
-        await response.ShouldHaveValidationError("Минимальная длина названия — 2 символа");
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        result.GetValidationErrorMessage().Should().Contain("Минимальная длина названия");
     }
 
     /// <summary>
@@ -331,10 +329,12 @@ public class CreateProductApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(createDto);
 
         // Assert
-        await response.ShouldHaveValidationError("Нельзя загрузить более 5 фотографий");
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        result.GetValidationErrorMessage().Should().Contain("более 5 фотографий");
     }
 
     /// <summary>
@@ -346,14 +346,13 @@ public class CreateProductApiTests : IntegrationTestBase
     [InlineData(-100)]
     public async Task CreateProduct_NegativeCalories_Returns400BadRequest(double calories)
     {
-        // Arrange
-        var createDto = TestDataBuilder.CreateProduct(calories: calories);
-
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(calories: calories);
 
         // Assert
-        await response.ShouldHaveValidationError("Калорийность не может быть отрицательной");
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        result.GetValidationErrorMessage().Should().Contain("Калорийность не может быть отрицательной");
     }
 
     /// <summary>
@@ -364,14 +363,13 @@ public class CreateProductApiTests : IntegrationTestBase
     [InlineData(-1)]
     public async Task CreateProduct_NegativeProteins_Returns400BadRequest(double proteins)
     {
-        // Arrange
-        var createDto = TestDataBuilder.CreateProduct(proteins: proteins);
-
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(proteins: proteins);
 
         // Assert
-        await response.ShouldHaveValidationError("Количество белков не может быть отрицательным");
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        result.GetValidationErrorMessage().Should().Contain("белков не может быть отрицательным");
     }
 
     /// <summary>
@@ -382,14 +380,13 @@ public class CreateProductApiTests : IntegrationTestBase
     [InlineData(-1)]
     public async Task CreateProduct_NegativeFats_Returns400BadRequest(double fats)
     {
-        // Arrange
-        var createDto = TestDataBuilder.CreateProduct(fats: fats);
-
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(fats: fats);
 
         // Assert
-        await response.ShouldHaveValidationError("Количество жиров не может быть отрицательным");
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        result.GetValidationErrorMessage().Should().Contain("жиров не может быть отрицательным");
     }
 
     /// <summary>
@@ -400,14 +397,13 @@ public class CreateProductApiTests : IntegrationTestBase
     [InlineData(-1)]
     public async Task CreateProduct_NegativeCarbs_Returns400BadRequest(double carbs)
     {
-        // Arrange
-        var createDto = TestDataBuilder.CreateProduct(carbs: carbs);
-
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(carbs: carbs);
 
         // Assert
-        await response.ShouldHaveValidationError("Количество углеводов не может быть отрицательным");
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        result.GetValidationErrorMessage().Should().Contain("углеводов не может быть отрицательным");
     }
 
     /// <summary>
@@ -424,15 +420,17 @@ public class CreateProductApiTests : IntegrationTestBase
             ProteinsPer100g = 10,
             FatsPer100g = 5,
             CarbsPer100g = 15,
-            Category = ProductCategory.None, // Невалидная категория
+            Category = ProductCategory.None,
             CookingRequirement = CookingRequirement.ReadyToUse
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(createDto);
 
         // Assert
-        await response.ShouldHaveValidationError("Категория продукта обязательна");
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        result.GetValidationErrorMessage().Should().Contain("Категория продукта обязательна");
     }
 
     /// <summary>
@@ -446,7 +444,7 @@ public class CreateProductApiTests : IntegrationTestBase
         {
             Name = "Продукт с избыточными БЖУ",
             CaloriesPer100g = 100,
-            ProteinsPer100g = 50, // 50 + 40 + 20 = 110 > 100
+            ProteinsPer100g = 50,
             FatsPer100g = 40,
             CarbsPer100g = 20,
             Category = ProductCategory.Vegetables,
@@ -454,10 +452,12 @@ public class CreateProductApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(createDto);
 
         // Assert
-        await response.ShouldHaveValidationError("Сумма белков, жиров и углеводов не может превышать 100 г");
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        result.GetValidationErrorMessage().Should().Contain("Сумма белков, жиров и углеводов не может превышать 100 г");
     }
 
     /// <summary>
@@ -471,7 +471,7 @@ public class CreateProductApiTests : IntegrationTestBase
         {
             Name = "Продукт с БЖУ = 100г",
             CaloriesPer100g = 400,
-            ProteinsPer100g = 30, // 30 + 40 + 30 = 100
+            ProteinsPer100g = 30,
             FatsPer100g = 40,
             CarbsPer100g = 30,
             Category = ProductCategory.Vegetables,
@@ -479,13 +479,11 @@ public class CreateProductApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
-        CreatedProductIds.Add(result!.Id);
+        result.IsSuccess.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
     #endregion
@@ -498,19 +496,14 @@ public class CreateProductApiTests : IntegrationTestBase
     [Fact(DisplayName = "API: Создание продукта с калорийностью 0 успешно")]
     public async Task CreateProduct_CaloriesZero_Succeeds()
     {
-        // Arrange
-        var createDto = TestDataBuilder.CreateProduct(
+        // Act
+        var result = await CreateProductAsync(
             name: "Продукт с нулевой калорийностью",
             calories: 0);
 
-        // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
-
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
-        CreatedProductIds.Add(result!.Id);
+        result.IsSuccess.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
     /// <summary>
@@ -532,13 +525,11 @@ public class CreateProductApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
-        CreatedProductIds.Add(result!.Id);
+        result.IsSuccess.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
     /// <summary>
@@ -560,13 +551,11 @@ public class CreateProductApiTests : IntegrationTestBase
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/products", createDto, JsonOptions);
+        var result = await CreateProductAsync(createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var result = await response.Content.ReadFromJsonAsync<ProductDto>(JsonOptions);
-        CreatedProductIds.Add(result!.Id);
+        result.IsSuccess.Should().BeTrue();
+        result.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
     #endregion
