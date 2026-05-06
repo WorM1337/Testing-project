@@ -8,25 +8,14 @@ using Testing_project.Dtos.Ingredient;
 
 namespace Test.Core.Integration;
 
-/// <summary>
-/// Базовый класс для интеграционных тестов API.
-/// Автоматически трекает созданные сущности и очищает их после теста.
-/// Все методы возвращают ApiResponse<T> для единообразной проверки результатов.
-/// </summary>
 [Collection("Integration Tests")]
 public abstract class IntegrationTestBase : IAsyncLifetime
 {
     protected HttpClient Client = null!;
     private readonly string _baseUrl;
     
-    /// <summary>
-    /// ID созданных блюд (для автоматической очистки)
-    /// </summary>
     private readonly List<int> _createdDishIds = new();
     
-    /// <summary>
-    /// ID созданных продуктов (для автоматической очистки)
-    /// </summary>
     private readonly List<int> _createdProductIds = new();
 
     protected IntegrationTestBase()
@@ -66,9 +55,6 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     
     #region Helper Methods для создания продуктов
     
-    /// <summary>
-    /// Создает продукт с параметрами по умолчанию. Автоматически добавляет ID в список очистки.
-    /// </summary>
     protected async Task<ApiResponse<ProductDto>> CreateProductAsync(
         string name = "Тестовый продукт",
         double calories = 100,
@@ -98,10 +84,6 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         return await CreateProductAsync(createDto);
     }
     
-    /// <summary>
-    /// Создает продукт из DTO. Автоматически добавляет ID в список очистки.
-    /// Возвращает ApiResponse с результатом операции.
-    /// </summary>
     protected async Task<ApiResponse<ProductDto>> CreateProductAsync(CreateProductDto createDto)
     {
         var response = await Client.PostAsJsonAsync("/api/products", createDto, ApiHelpers.JsonOptions);
@@ -135,9 +117,6 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     
     #region Helper Methods для создания блюд
     
-    /// <summary>
-    /// Создает блюдо с ингредиентами. Автоматически добавляет ID в список очистки.
-    /// </summary>
     protected async Task<ApiResponse<DishDto>> CreateDishAsync(
         string name,
         List<CreateIngredientDto> ingredients,
@@ -163,10 +142,6 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         return await CreateDishAsync(createDto);
     }
     
-    /// <summary>
-    /// Создает блюдо из DTO. Автоматически добавляет ID в список очистки.
-    /// Возвращает ApiResponse с результатом операции.
-    /// </summary>
     protected async Task<ApiResponse<DishDto>> CreateDishAsync(CreateDishDto createDto)
     {
         var response = await Client.PostAsJsonAsync("/api/dishes", createDto, ApiHelpers.JsonOptions);
@@ -200,9 +175,6 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     
     #region Helper Methods для получения данных
     
-    /// <summary>
-    /// Получает список продуктов. Возвращает ApiResponse со списком.
-    /// </summary>
     protected async Task<ApiResponse<List<ProductDto>>> GetProductsAsync(string? query = null)
     {
         var url = string.IsNullOrEmpty(query) ? "/api/products" : $"/api/products{query}";
@@ -228,9 +200,6 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         };
     }
     
-    /// <summary>
-    /// Получает продукт по ID. Возвращает ApiResponse с продуктом.
-    /// </summary>
     protected async Task<ApiResponse<ProductDto>> GetProductAsync(int id)
     {
         var response = await Client.GetAsync($"/api/products/{id}");
@@ -255,9 +224,6 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         };
     }
     
-    /// <summary>
-    /// Получает блюдо по ID. Возвращает ApiResponse с блюдом.
-    /// </summary>
     protected async Task<ApiResponse<DishDto>> GetDishAsync(int id)
     {
         var response = await Client.GetAsync($"/api/dishes/{id}");
@@ -286,9 +252,6 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     
     #region Helper Methods для обновления
     
-    /// <summary>
-    /// Обновляет блюдо по ID. Возвращает ApiResponse с обновленным блюдом.
-    /// </summary>
     protected async Task<ApiResponse<DishDto>> UpdateDishAsync(int id, UpdateDishDto updateDto)
     {
         var response = await Client.PatchAsJsonAsync($"/api/dishes/{id}", updateDto, ApiHelpers.JsonOptions);
@@ -327,9 +290,6 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     
     #region Helper Methods для удаления
     
-    /// <summary>
-    /// Удаляет продукт по ID. Возвращает ApiResponse с результатом операции.
-    /// </summary>
     protected async Task<ApiResponse> DeleteProductAsync(int id)
     {
         var response = await Client.DeleteAsync($"/api/products/{id}");
@@ -353,9 +313,6 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         };
     }
     
-    /// <summary>
-    /// Удаляет блюдо по ID. Возвращает ApiResponse с результатом операции.
-    /// </summary>
     protected async Task<ApiResponse> DeleteDishAsync(int id)
     {
         var response = await Client.DeleteAsync($"/api/dishes/{id}");

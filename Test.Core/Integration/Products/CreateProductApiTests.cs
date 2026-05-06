@@ -11,9 +11,6 @@ public class CreateProductApiTests : IntegrationTestBase
 {
     #region E1. Создание продуктов — валидные данные
 
-    /// <summary>
-    /// Создание валидного продукта со всеми полями — 201 Created
-    /// </summary>
     [Fact(DisplayName = "API: Создание валидного продукта возвращает 201 Created")]
     public async Task CreateProduct_ValidData_Returns201Created()
     {
@@ -39,9 +36,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.Content.Id.Should().BeGreaterThan(0);
     }
 
-    /// <summary>
-    /// Создание продукта с флагами — комбинации флагов
-    /// </summary>
     [Theory(DisplayName = "API: Создание продукта с флагами успешно")]
     [InlineData(ExtraFlag.Vegan)]
     [InlineData(ExtraFlag.GlutenFree)]
@@ -59,9 +53,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.Content!.Flags.Should().HaveFlag(flag);
     }
 
-    /// <summary>
-    /// Создание продукта с несколькими флагами
-    /// </summary>
     [Fact(DisplayName = "API: Создание продукта с несколькими флагами успешно")]
     public async Task CreateProduct_WithMultipleFlags_Succeeds()
     {
@@ -81,9 +72,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.Content.Flags.Should().HaveFlag(ExtraFlag.SugarFree);
     }
 
-    /// <summary>
-    /// Создание продукта с минимальными обязательными полями
-    /// </summary>
     [Fact(DisplayName = "API: Создание продукта с минимальными полями успешно")]
     public async Task CreateProduct_MinimalFields_Succeeds()
     {
@@ -107,9 +95,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
-    /// <summary>
-    /// Создание продукта с фотографиями (до 5)
-    /// </summary>
     [Theory(DisplayName = "API: Создание продукта с фотографиями успешно")]
     [InlineData(1)]
     [InlineData(3)]
@@ -142,9 +127,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.Content!.Photos.Should().HaveCount(photoCount);
     }
 
-    /// <summary>
-    /// Создание продукта с составом
-    /// </summary>
     [Fact(DisplayName = "API: Создание продукта с составом успешно")]
     public async Task CreateProduct_WithComposition_Succeeds()
     {
@@ -170,9 +152,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.Content!.Composition.Should().Be("Вода, соль, специи");
     }
 
-    /// <summary>
-    /// Создание продуктов всех категорий
-    /// </summary>
     [Theory(DisplayName = "API: Создание продукта каждой категории успешно")]
     [InlineData(ProductCategory.Frozen)]
     [InlineData(ProductCategory.Meat)]
@@ -196,9 +175,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.Content!.Category.Should().Be(category);
     }
 
-    /// <summary>
-    /// Создание продуктов с разными требованиями к готовке
-    /// </summary>
     [Theory(DisplayName = "API: Создание продукта с разными требованиями к готовке успешно")]
     [InlineData(CookingRequirement.ReadyToUse)]
     [InlineData(CookingRequirement.SemiFinished)]
@@ -230,9 +206,6 @@ public class CreateProductApiTests : IntegrationTestBase
 
     #region E2. Создание продуктов — невалидные данные
 
-    /// <summary>
-    /// Создание продукта с пустым названием — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Создание продукта с пустым названием возвращает 400 BadRequest")]
     [InlineData("")]
     [InlineData("   ")]
@@ -259,9 +232,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.GetValidationErrorMessage().Should().Contain("Название продукта обязательно");
     }
 
-    /// <summary>
-    /// Создание продукта с null названием — ошибка валидации (ModelState)
-    /// </summary>
     [Fact(DisplayName = "API: Создание продукта с null названием возвращает 400 BadRequest")]
     public async Task CreateProduct_NullName_Returns400BadRequest()
     {
@@ -286,9 +256,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.GetValidationErrorMessage().Should().Contain("Name field is required");
     }
 
-    /// <summary>
-    /// Создание продукта с названием короче 2 символов — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Создание продукта с коротким названием возвращает 400 BadRequest")]
     [InlineData("A")]
     [InlineData("Б")]
@@ -303,9 +270,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.GetValidationErrorMessage().Should().Contain("Минимальная длина названия");
     }
 
-    /// <summary>
-    /// Создание продукта с более чем 5 фотографиями — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Создание продукта с более чем 5 фотографиями возвращает 400 BadRequest")]
     [InlineData(6)]
     [InlineData(10)]
@@ -337,9 +301,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.GetValidationErrorMessage().Should().Contain("более 5 фотографий");
     }
 
-    /// <summary>
-    /// Создание продукта с отрицательной калорийностью — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Создание продукта с отрицательной калорийностью возвращает 400")]
     [InlineData(-0.1)]
     [InlineData(-1)]
@@ -355,9 +316,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.GetValidationErrorMessage().Should().Contain("Калорийность не может быть отрицательной");
     }
 
-    /// <summary>
-    /// Создание продукта с отрицательными белками — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Создание продукта с отрицательными белками возвращает 400")]
     [InlineData(-0.1)]
     [InlineData(-1)]
@@ -372,9 +330,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.GetValidationErrorMessage().Should().Contain("белков не может быть отрицательным");
     }
 
-    /// <summary>
-    /// Создание продукта с отрицательными жирами — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Создание продукта с отрицательными жирами возвращает 400")]
     [InlineData(-0.1)]
     [InlineData(-1)]
@@ -389,9 +344,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.GetValidationErrorMessage().Should().Contain("жиров не может быть отрицательным");
     }
 
-    /// <summary>
-    /// Создание продукта с отрицательными углеводами — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Создание продукта с отрицательными углеводами возвращает 400")]
     [InlineData(-0.1)]
     [InlineData(-1)]
@@ -406,9 +358,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.GetValidationErrorMessage().Should().Contain("углеводов не может быть отрицательным");
     }
 
-    /// <summary>
-    /// Создание продукта с категорией None — ошибка валидации
-    /// </summary>
     [Fact(DisplayName = "API: Создание продукта с категорией None возвращает 400 BadRequest")]
     public async Task CreateProduct_CategoryNone_Returns400BadRequest()
     {
@@ -433,9 +382,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.GetValidationErrorMessage().Should().Contain("Категория продукта обязательна");
     }
 
-    /// <summary>
-    /// Создание продукта с суммой макронутриентов > 100г — ошибка валидации
-    /// </summary>
     [Fact(DisplayName = "API: Создание продукта с суммой БЖУ > 100г возвращает 400 BadRequest")]
     public async Task CreateProduct_MacronutrientsExceed100_Returns400BadRequest()
     {
@@ -460,9 +406,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.GetValidationErrorMessage().Should().Contain("Сумма белков, жиров и углеводов не может превышать 100 г");
     }
 
-    /// <summary>
-    /// Создание продукта с суммой макронутриентов = 100г — граничное значение (валидно)
-    /// </summary>
     [Fact(DisplayName = "API: Создание продукта с суммой БЖУ = 100г успешно")]
     public async Task CreateProduct_MacronutrientsExactly100_Succeeds()
     {
@@ -490,9 +433,6 @@ public class CreateProductApiTests : IntegrationTestBase
 
     #region E3. Граничные значения КБЖУ
 
-    /// <summary>
-    /// Создание продукта с калорийностью = 0 — граничное значение (валидно)
-    /// </summary>
     [Fact(DisplayName = "API: Создание продукта с калорийностью 0 успешно")]
     public async Task CreateProduct_CaloriesZero_Succeeds()
     {
@@ -506,9 +446,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
-    /// <summary>
-    /// Создание продукта с очень большими значениями КБЖУ — проверка на overflow
-    /// </summary>
     [Fact(DisplayName = "API: Создание продукта с очень большими КБЖУ успешно")]
     public async Task CreateProduct_VeryLargeNutrition_Succeeds()
     {
@@ -532,9 +469,6 @@ public class CreateProductApiTests : IntegrationTestBase
         result.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
-    /// <summary>
-    /// Создание продукта с минимальными положительными значениями БЖУ
-    /// </summary>
     [Fact(DisplayName = "API: Создание продукта с минимальными БЖУ успешно")]
     public async Task CreateProduct_MinimalPositiveNutrition_Succeeds()
     {

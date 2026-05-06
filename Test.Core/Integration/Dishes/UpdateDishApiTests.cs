@@ -9,11 +9,8 @@ namespace Test.Core.Integration.Dishes;
 [Collection("Integration Tests")]
 public class UpdateDishApiTests : IntegrationTestBase
 {
-    #region B1. Эквивалентное разбиение — частичное обновление
+    #region Частичное обновление
 
-    /// <summary>
-    /// Обновление только названия — остальные поля сохраняются
-    /// </summary>
     [Fact(DisplayName = "API: Обновление только названия блюда сохраняет остальные поля")]
     public async Task UpdateDish_OnlyName_PreservesOtherFields()
     {
@@ -53,9 +50,6 @@ public class UpdateDishApiTests : IntegrationTestBase
         getResult.Content.CaloriesPerServing.Should().Be(createdResult.Content.CaloriesPerServing); // Сохранилось
     }
 
-    /// <summary>
-    /// Обновление только КБЖУ — пересчет с пользовательскими значениями
-    /// </summary>
     [Fact(DisplayName = "API: Обновление только КБЖУ использует пользовательские значения")]
     public async Task UpdateDish_OnlyNutrition_UsesCustomValues()
     {
@@ -98,9 +92,6 @@ public class UpdateDishApiTests : IntegrationTestBase
         getResult.Content.CarbsPerServing.Should().Be(77);
     }
 
-    /// <summary>
-    /// Обновление только ингредиентов — автоматический пересчет КБЖУ и флагов
-    /// </summary>
     [Fact(DisplayName = "API: Обновление ингредиентов пересчитывает КБЖУ автоматически")]
     public async Task UpdateDish_OnlyIngredients_RecalculatesNutrition()
     {
@@ -147,9 +138,6 @@ public class UpdateDishApiTests : IntegrationTestBase
         getResult.Content.ServingSize.Should().Be(200); // Сумма весов ингредиентов
     }
 
-    /// <summary>
-    /// Обновление категории — явная установка категории
-    /// </summary>
     [Fact(DisplayName = "API: Обновление категории блюда изменяет категорию")]
     public async Task UpdateDish_OnlyCategory_ChangesCategory()
     {
@@ -185,9 +173,6 @@ public class UpdateDishApiTests : IntegrationTestBase
         getResult.Content!.Category.Should().Be(DishCategory.Salad);
     }
 
-    /// <summary>
-    /// Обновление флагов — установка/снятие флагов
-    /// </summary>
     [Fact(DisplayName = "API: Обновление флагов блюда изменяет флаги")]
     public async Task UpdateDish_OnlyFlags_ChangesFlags()
     {
@@ -229,11 +214,8 @@ public class UpdateDishApiTests : IntegrationTestBase
 
     #endregion
 
-    #region B2. Анализ граничных значений — обновление
+    #region Анализ граничных значений — обновление
 
-    /// <summary>
-    /// Обновление несуществующего блюда — 404
-    /// </summary>
     [Fact(DisplayName = "API: Обновление несуществующего блюда возвращает 404 NotFound")]
     public async Task UpdateDish_NonExistent_Returns404NotFound()
     {
@@ -251,9 +233,6 @@ public class UpdateDishApiTests : IntegrationTestBase
         updateResult.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    /// <summary>
-    /// Обновление с невалидным ID — 404 (если маршрут позволяет)
-    /// </summary>
     [Theory(DisplayName = "API: Обновление блюда с невалидным ID возвращает 404")]
     [InlineData(0)]
     [InlineData(-1)]
@@ -273,9 +252,6 @@ public class UpdateDishApiTests : IntegrationTestBase
         updateResult.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    /// <summary>
-    /// Обновление с пустым телом — поведение (noop, блюдо не изменяется)
-    /// </summary>
     [Fact(DisplayName = "API: Обновление блюда с пустым телом не изменяет блюдо")]
     public async Task UpdateDish_EmptyBody_NoChanges()
     {
@@ -311,11 +287,8 @@ public class UpdateDishApiTests : IntegrationTestBase
 
     #endregion
 
-    #region B3. Конфликтные сценарии при обновлении
+    #region Конфликтные сценарии при обновлении
 
-    /// <summary>
-    /// Изменение состава, снимающее флаг — флаг автоматически снимается
-    /// </summary>
     [Fact(DisplayName = "API: Изменение состава автоматически снимает недопустимые флаги")]
     public async Task UpdateDish_CompositionChange_RemovesInvalidFlags()
     {
@@ -363,9 +336,6 @@ public class UpdateDishApiTests : IntegrationTestBase
         getResult.Content!.Flags.Should().NotHaveFlag(ExtraFlag.Vegan); // Флаг автоматически снят
     }
 
-    /// <summary>
-    /// Изменение состава + явный флаг — валидация (ошибка, если флаг недопустим)
-    /// </summary>
     [Fact(DisplayName = "API: Изменение состава с явным недопустимым флагом возвращает 400")]
     public async Task UpdateDish_CompositionChangeWithInvalidFlag_Returns400BadRequest()
     {
@@ -410,9 +380,6 @@ public class UpdateDishApiTests : IntegrationTestBase
         }
     }
 
-    /// <summary>
-    /// Изменение макроса в названии — смена категории
-    /// </summary>
     [Fact(DisplayName = "API: Изменение макроса в названии изменяет категорию")]
     public async Task UpdateDish_MacroChange_ChangesCategory()
     {
@@ -449,9 +416,6 @@ public class UpdateDishApiTests : IntegrationTestBase
         getResult.Content.Category.Should().Be(DishCategory.Dessert); // Категория изменена
     }
 
-    /// <summary>
-    /// Обновление с невалидными данными — ошибка валидации
-    /// </summary>
     [Fact(DisplayName = "API: Обновление блюда с невалидным названием после удаления макроса возвращает 400")]
     public async Task UpdateDish_InvalidNameWithMacros_Returns400BadRequest()
     {
@@ -486,9 +450,6 @@ public class UpdateDishApiTests : IntegrationTestBase
         updateResult.GetValidationErrorMessage().Should().Contain("Название блюда слишком короткое после удаления макросов (минимум 2 символа).");
     }
     
-    /// <summary>
-    /// Обновление с невалидными данными — ошибка валидации
-    /// </summary>
     [Fact(DisplayName = "API: Обновление блюда с невалидным названием возвращает 400")]
     public async Task UpdateDish_InvalidNameWithoutMacros_Returns400BadRequest()
     {
@@ -523,9 +484,6 @@ public class UpdateDishApiTests : IntegrationTestBase
         updateResult.GetValidationErrorMessage().Should().Contain("Минимальная длина названия — 2 символа.");
     }
 
-    /// <summary>
-    /// Обновление с отрицательными КБЖУ — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Обновление блюда с отрицательными КБЖУ возвращает 400")]
     [InlineData(-1)]
     [InlineData(-100)]
@@ -562,9 +520,6 @@ public class UpdateDishApiTests : IntegrationTestBase
         updateResult.GetValidationErrorMessage().Should().Contain("Калорийность не может быть отрицательной");
     }
 
-    /// <summary>
-    /// Обновление с более чем 5 фотографиями — ошибка валидации
-    /// </summary>
     [Fact(DisplayName = "API: Обновление блюда с более чем 5 фотографиями возвращает 400")]
     public async Task UpdateDish_MoreThan5Photos_Returns400BadRequest()
     {

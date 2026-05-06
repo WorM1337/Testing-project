@@ -3,17 +3,11 @@ using System.Text.Json;
 
 namespace Test.Core.Integration.Helpers;
 
-/// <summary>
-/// Результат выполнения API-запроса с типизированным содержимым
-/// </summary>
 public class ApiResponse<T> : ApiResponse
 {
     public new T? Content { get; set; }
 }
 
-/// <summary>
-/// Базовый результат выполнения API-запроса
-/// </summary>
 public class ApiResponse
 {
     public HttpStatusCode StatusCode { get; set; }
@@ -21,9 +15,6 @@ public class ApiResponse
     public string? Error { get; set; }
     public bool IsSuccess => StatusCode >= HttpStatusCode.OK && StatusCode < HttpStatusCode.MultipleChoices;
     
-    /// <summary>
-    /// Пытается распарсить ошибку как JSON и извлечь сообщение валидации
-    /// </summary>
     public string? GetValidationErrorMessage()
     {
         if (string.IsNullOrEmpty(Error))

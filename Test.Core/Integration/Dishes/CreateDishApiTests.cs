@@ -11,9 +11,6 @@ public class CreateDishApiTests : IntegrationTestBase
 {
     #region Валидные данные
 
-    /// <summary>
-    /// Создание блюда с валидными данными и явной категорией
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с валидными данными возвращает 201 Created")]
     public async Task CreateDish_ValidData_Returns201Created()
     {
@@ -42,9 +39,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.Content.Id.Should().BeGreaterThan(0);
     }
 
-    /// <summary>
-    /// Создание блюда с макросом в названии — категория определяется автоматически
-    /// </summary>
     [Theory(DisplayName = "API: Создание блюда с макросом автоматически определяет категорию")]
     [InlineData("!десерт Тирамису", DishCategory.Dessert, "Тирамису")]
     [InlineData("!первое Борщ", DishCategory.Entree, "Борщ")]
@@ -80,9 +74,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.Content.Category.Should().Be(expectedCategory); // Категория определена автоматически
     }
 
-    /// <summary>
-    /// Создание блюда с переопределением КБЖУ — используются пользовательские значения
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с переопределением КБЖУ использует пользовательские значения")]
     public async Task CreateDish_WithNutritionOverride_UsesCustomValues()
     {
@@ -118,9 +109,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.Content.ServingSize.Should().Be(250);
     }
 
-    /// <summary>
-    /// Создание блюда с несколькими продуктами — КБЖУ рассчитывается автоматически
-    /// </summary>
     [Theory(DisplayName = "API: Создание блюда с несколькими продуктами рассчитывает КБЖУ")]
     [InlineData(3)] // 3 продукта
     [InlineData(5)] // 5 продуктов
@@ -159,9 +147,6 @@ public class CreateDishApiTests : IntegrationTestBase
 
     #region Невалидные данные (валидация)
 
-    /// <summary>
-    /// Создание блюда с пустым названием — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Создание блюда с пустым названием возвращает 400 BadRequest")]
     [InlineData("")]
     [InlineData("   ")]
@@ -190,9 +175,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.GetValidationErrorMessage().Should().Be("Название блюда обязательно.");
     }
 
-    /// <summary>
-    /// Создание блюда с null названием — ошибка валидации (ModelState)
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с null названием возвращает 400 BadRequest")]
     public async Task CreateDish_NullName_Returns400BadRequest()
     {
@@ -219,9 +201,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.GetValidationErrorMessage().Should().Contain("Name field is required");
     }
 
-    /// <summary>
-    /// Создание блюда с названием короче 2 символов — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Создание блюда с коротким названием возвращает 400 BadRequest")]
     [InlineData("A")]
     [InlineData("Б")]
@@ -250,9 +229,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.GetValidationErrorMessage().Should().Be("Минимальная длина названия — 2 символа.");
     }
 
-    /// <summary>
-    /// Создание блюда с макросом, но чистое название короче 2 символов — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Создание блюда с макросом, но коротким чистым названием возвращает 400")]
     [InlineData("!десерт A")]
     [InlineData("!первое Б")]
@@ -281,9 +257,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.GetValidationErrorMessage().Should().Contain("слишком короткое после удаления макросов");
     }
 
-    /// <summary>
-    /// Создание блюда без категории и без макроса — ошибка валидации
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда без категории и макроса возвращает 400 BadRequest")]
     public async Task CreateDish_NoCategoryAndNoMacro_Returns400BadRequest()
     {
@@ -310,9 +283,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.GetValidationErrorMessage().Should().Contain("Категория блюда обязательна");
     }
 
-    /// <summary>
-    /// Создание блюда с более чем 5 фотографиями — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Создание блюда с более чем 5 фотографиями возвращает 400 BadRequest")]
     [InlineData(6)]
     [InlineData(10)]
@@ -346,9 +316,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.GetValidationErrorMessage().Should().Be("Нельзя загрузить более 5 фотографий.");
     }
 
-    /// <summary>
-    /// Создание блюда с пустым списком ингредиентов — ошибка валидации
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с пустым списком ингредиентов возвращает 400 BadRequest")]
     public async Task CreateDish_EmptyIngredients_Returns400BadRequest()
     {
@@ -369,9 +336,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.GetValidationErrorMessage().Should().Be("Должен быть хотя бы один ингредиент.");
     }
 
-    /// <summary>
-    /// Создание блюда с null в списке ингредиентов — ошибка валидации
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с null в ингредиентах возвращает 400 BadRequest")]
     public async Task CreateDish_NullIngredient_Returns400BadRequest()
     {
@@ -392,9 +356,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.GetValidationErrorMessage().Should().Contain("пустые значения");
     }
 
-    /// <summary>
-    /// Создание блюда с невалидным ProductId (0 или отрицательный) — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Создание блюда с невалидным ProductId возвращает 400 BadRequest")]
     [InlineData(0)]
     [InlineData(-1)]
@@ -421,9 +382,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.GetValidationErrorMessage().Should().Be("ID продукта должен быть больше нуля.");
     }
 
-    /// <summary>
-    /// Создание блюда с невалидным AmountInGrams (0 или отрицательный) — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Создание блюда с невалидным количеством возвращает 400 BadRequest")]
     [InlineData(0)]
     [InlineData(-1)]
@@ -453,9 +411,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.GetValidationErrorMessage().Should().Be("Количество продукта должно быть больше нуля.");
     }
 
-    /// <summary>
-    /// Создание блюда с несуществующим ProductId — ошибка бизнес-логики
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с несуществующим ProductId возвращает 400 BadRequest")]
     public async Task CreateDish_NonExistentProductId_Returns400BadRequest()
     {
@@ -483,9 +438,6 @@ public class CreateDishApiTests : IntegrationTestBase
 
     #region КБЖУ
 
-    /// <summary>
-    /// Создание блюда с калорийностью = 0 — граничное значение (валидно)
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с калорийностью 0 успешно")]
     public async Task CreateDish_CaloriesZero_Succeeds()
     {
@@ -512,9 +464,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.Content!.CaloriesPerServing.Should().Be(0);
     }
 
-    /// <summary>
-    /// Создание блюда с отрицательной калорийностью — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Создание блюда с отрицательной калорийностью возвращает 400")]
     [InlineData(-0.1)]
     [InlineData(-1)]
@@ -545,9 +494,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.GetValidationErrorMessage().Should().Be("Калорийность не может быть отрицательной.");
     }
 
-    /// <summary>
-    /// Создание блюда с очень большими значениями КБЖУ — проверка на overflow
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с очень большими КБЖУ успешно")]
     public async Task CreateDish_VeryLargeNutrition_Succeeds()
     {
@@ -577,9 +523,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.Content!.CaloriesPerServing.Should().Be(999999.99);
     }
 
-    /// <summary>
-    /// Создание блюда с размером порции 0.1 грамма — минимальное положительное значение
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с размером порции 0.1г успешно")]
     public async Task CreateDish_ServingSize0Point1_Succeeds()
     {
@@ -606,9 +549,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.Content!.ServingSize.Should().Be(0.1);
     }
 
-    /// <summary>
-    /// Создание блюда с размером порции 0 или отрицательным — ошибка валидации
-    /// </summary>
     [Theory(DisplayName = "API: Создание блюда с невалидным размером порции возвращает 400")]
     [InlineData(0)]
     [InlineData(-1)]
@@ -643,9 +583,6 @@ public class CreateDishApiTests : IntegrationTestBase
 
     #region Количество ингредиентов
 
-    /// <summary>
-    /// Создание блюда с 1 ингредиентом — минимально валидно
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с 1 ингредиентом успешно")]
     public async Task CreateDish_OneIngredient_Succeeds()
     {
@@ -671,9 +608,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.Content!.Ingredients.Should().HaveCount(1);
     }
 
-    /// <summary>
-    /// Создание блюда с 10+ ингредиентами — проверка производительности
-    /// </summary>
     [Theory(DisplayName = "API: Создание блюда с большим количеством ингредиентов успешно")]
     [InlineData(10)]
     [InlineData(20)]
@@ -711,9 +645,6 @@ public class CreateDishApiTests : IntegrationTestBase
 
     #region Конфликтные сценарии
 
-    /// <summary>
-    /// Создание блюда с флагом Vegan, но ингредиент без флага — ошибка бизнес-логики
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с флагом Vegan, но не веганским продуктом возвращает 400")]
     public async Task CreateDish_VeganFlagButNonVeganProduct_Returns400BadRequest()
     {
@@ -741,9 +672,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.Error.Should().Contain("Веган");
     }
 
-    /// <summary>
-    /// Создание блюда с флагом GlutenFree, но ингредиент без флага — ошибка бизнес-логики
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с флагом GlutenFree, но продуктом с глютеном возвращает 400")]
     public async Task CreateDish_GlutenFreeFlagButGlutenProduct_Returns400BadRequest()
     {
@@ -771,9 +699,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.Error.Should().Contain("Без глютена");
     }
 
-    /// <summary>
-    /// Создание блюда с флагом SugarFree, но ингредиент без флага — ошибка бизнес-логики
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с флагом SugarFree, но продуктом с сахаром возвращает 400")]
     public async Task CreateDish_SugarFreeFlagButSugarProduct_Returns400BadRequest()
     {
@@ -801,9 +726,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.Error.Should().Contain("Без сахара");
     }
 
-    /// <summary>
-    /// Создание блюда с несколькими конфликтными флагами — все ошибки в одном сообщении
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с несколькими конфликтными флагами возвращает все ошибки")]
     public async Task CreateDish_MultipleConflictingFlags_ReturnsAllErrors()
     {
@@ -837,9 +759,6 @@ public class CreateDishApiTests : IntegrationTestBase
 
     #region Макросы — все типы
 
-    /// <summary>
-    /// Создание блюда с несколькими макросами — применяется первый
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с несколькими макросами использует первый")]
     public async Task CreateDish_MultipleMacros_UsesFirst()
     {
@@ -866,9 +785,6 @@ public class CreateDishApiTests : IntegrationTestBase
         dishResult.Content.Name.Should().Be("Блюдо"); // Оба макроса удалены
     }
 
-    /// <summary>
-    /// Создание блюда с неизвестным макросом — макрос игнорируется
-    /// </summary>
     [Fact(DisplayName = "API: Создание блюда с неизвестным макросом игнорирует его")]
     public async Task CreateDish_UnknownMacro_IgnoresMacro()
     {

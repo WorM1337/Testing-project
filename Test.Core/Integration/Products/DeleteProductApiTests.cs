@@ -11,9 +11,6 @@ public class DeleteProductApiTests : IntegrationTestBase
 {
     #region Удаление продукта
 
-    /// <summary>
-    /// Удаление существующего неиспользуемого продукта — 204 No Content
-    /// </summary>
     [Fact(DisplayName = "API: Удаление неиспользуемого продукта возвращает 204 NoContent")]
     public async Task DeleteProduct_UnusedProduct_Returns204NoContent()
     {
@@ -33,9 +30,6 @@ public class DeleteProductApiTests : IntegrationTestBase
         getResult.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    /// <summary>
-    /// Удаление несуществующего продукта — 404 Not Found
-    /// </summary>
     [Fact(DisplayName = "API: Удаление несуществующего продукта возвращает 404 NotFound")]
     public async Task DeleteProduct_NonExistent_Returns404NotFound()
     {
@@ -47,9 +41,6 @@ public class DeleteProductApiTests : IntegrationTestBase
         deleteResult.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    /// <summary>
-    /// Повторное удаление продукта — 404 Not Found
-    /// </summary>
     [Fact(DisplayName = "API: Повторное удаление продукта возвращает 404 NotFound")]
     public async Task DeleteProduct_AlreadyDeleted_Returns404NotFound()
     {
@@ -66,9 +57,6 @@ public class DeleteProductApiTests : IntegrationTestBase
         deleteResult.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    /// <summary>
-    /// Удаление продукта с невалидным ID — 404 Not Found
-    /// </summary>
     [Theory(DisplayName = "API: Удаление продукта с невалидным ID возвращает 404 NotFound")]
     [InlineData(0)]
     [InlineData(-1)]
@@ -82,9 +70,6 @@ public class DeleteProductApiTests : IntegrationTestBase
         deleteResult.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    /// <summary>
-    /// Удаление продукта, используемого в блюде — 400 Bad Request
-    /// </summary>
     [Fact(DisplayName = "API: Удаление продукта, используемого в блюде, возвращает 400 BadRequest")]
     public async Task DeleteProduct_UsedInDish_Returns400BadRequest()
     {
@@ -115,9 +100,6 @@ public class DeleteProductApiTests : IntegrationTestBase
         deleteResult.GetValidationErrorMessage().Should().Contain("используется в блюдах");
     }
 
-    /// <summary>
-    /// Удаление продукта, используемого в нескольких блюдах — 400 Bad Request с перечислением блюд
-    /// </summary>
     [Fact(DisplayName = "API: Удаление продукта из нескольких блюд возвращает список блюд")]
     public async Task DeleteProduct_UsedInMultipleDishes_ReturnsAllDishNames()
     {
@@ -156,9 +138,6 @@ public class DeleteProductApiTests : IntegrationTestBase
         }
     }
 
-    /// <summary>
-    /// Удаление продукта после удаления всех блюд с ним — 204 No Content
-    /// </summary>
     [Fact(DisplayName = "API: Удаление продукта после удаления блюд успешно")]
     public async Task DeleteProduct_AfterDeletingDishes_Succeeds()
     {

@@ -10,9 +10,6 @@ public class GetProductsApiTests : IntegrationTestBase
 {
     #region Получение продуктов
 
-    /// <summary>
-    /// Получение всех продуктов — список продуктов
-    /// </summary>
     [Fact(DisplayName = "API: Получение всех продуктов возвращает список")]
     public async Task GetProducts_All_ReturnsList()
     {
@@ -31,9 +28,6 @@ public class GetProductsApiTests : IntegrationTestBase
         getResult.Content!.Should().HaveCountGreaterThanOrEqualTo(3);
     }
 
-    /// <summary>
-    /// Поиск продукта по названию — точное совпадение
-    /// </summary>
     [Fact(DisplayName = "API: Поиск продукта по точному названию возвращает результат")]
     public async Task GetProducts_SearchExactName_ReturnsResult()
     {
@@ -50,9 +44,6 @@ public class GetProductsApiTests : IntegrationTestBase
         getResult.Content!.Should().ContainSingle(p => p.Name == uniqueName);
     }
 
-    /// <summary>
-    /// Фильтрация по категории
-    /// </summary>
     [Theory(DisplayName = "API: Фильтрация продуктов по категории возвращает только продукты этой категории")]
     [InlineData(ProductCategory.Vegetables)]
     [InlineData(ProductCategory.Meat)]
@@ -74,9 +65,6 @@ public class GetProductsApiTests : IntegrationTestBase
         getResult.Content.Should().OnlyContain(p => p.Category == category);
     }
 
-    /// <summary>
-    /// Сортировка по калорийности
-    /// </summary>
     [Fact(DisplayName = "API: Сортировка продуктов по калорийности (descending) работает корректно")]
     public async Task GetProducts_SortByCaloriesDescending_ReturnsSorted()
     {
@@ -89,9 +77,6 @@ public class GetProductsApiTests : IntegrationTestBase
         getResult.Content!.Should().BeInDescendingOrder(p => p.CaloriesPer100g);
     }
 
-    /// <summary>
-    /// Получение существующего продукта по ID — 200 OK
-    /// </summary>
     [Fact(DisplayName = "API: Получение существующего продукта по ID возвращает продукт")]
     public async Task GetProduct_ExistingId_ReturnsOk()
     {
@@ -109,9 +94,6 @@ public class GetProductsApiTests : IntegrationTestBase
         getResult.Content!.Id.Should().Be(createResult.Content.Id);
     }
 
-    /// <summary>
-    /// Получение несуществующего продукта по ID — 404 NotFound
-    /// </summary>
     [Fact(DisplayName = "API: Получение несуществующего продукта возвращает 404 NotFound")]
     public async Task GetProduct_NonExistentId_Returns404NotFound()
     {

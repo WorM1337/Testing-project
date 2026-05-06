@@ -11,9 +11,6 @@ public class DeleteDishApiTests : IntegrationTestBase
 {
     #region D. Удаление блюда
 
-    /// <summary>
-    /// Удаление существующего блюда — 204 No Content
-    /// </summary>
     [Fact(DisplayName = "API: Удаление существующего блюда возвращает 204 NoContent")]
     public async Task DeleteDish_Existing_Returns204NoContent()
     {
@@ -47,9 +44,6 @@ public class DeleteDishApiTests : IntegrationTestBase
         getResult.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    /// <summary>
-    /// Удаление несуществующего блюда — 404 Not Found
-    /// </summary>
     [Fact(DisplayName = "API: Удаление несуществующего блюда возвращает 404 NotFound")]
     public async Task DeleteDish_NonExistent_Returns404NotFound()
     {
@@ -61,9 +55,6 @@ public class DeleteDishApiTests : IntegrationTestBase
         deleteResult.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
     
-    /// <summary>
-    /// Удаление блюда с невалидным ID — 400 BadRequest
-    /// </summary>
     [Theory(DisplayName = "API: Удаление блюда с невалидным ID возвращает 400 BadRequest")]
     [InlineData(0)]
     [InlineData(-1)]
