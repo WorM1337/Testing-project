@@ -95,6 +95,7 @@ public class CreateDishTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = 50
         });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         var dish = new CreateDishDto
         {
@@ -138,6 +139,7 @@ public class CreateDishTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = 50
         });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         var dish = new CreateDishDto
         {
@@ -181,6 +183,7 @@ public class CreateDishTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = 50
         });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         var dish = new CreateDishDto
         {
@@ -217,8 +220,21 @@ public class CreateDishTests
         var page = await context.NewPageAsync();
         var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
 
+        // Создаем продукт для теста
+        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        await productsPage.GoToProductsTabAsync();
+        await productsPage.CreateProductAsync(new CreateProductDto
+        {
+            Name = "Продукт",
+            Category = "Vegetables",
+            CookingRequirement = "ReadyToUse",
+            CaloriesPer100g = 50
+        });
+        await productsPage.IsSuccessToastVisibleAsync();
+
         var dish = new CreateDishDto
         {
+            ServingSize = 10,
             Name = "Блюдо без ингредиентов",
             Category = "Side",
             Ingredients = new List<IngredientDto>()
@@ -229,7 +245,8 @@ public class CreateDishTests
         await dishesPage.OpenCreateModalAsync();
         await dishesPage.FillDishFormAsync(dish);
         // Не добавляем ингредиенты
-        await dishesPage.SaveDishAsync();
+        await dishesPage.SaveButton.ClickAsync();
+        await page.WaitForTimeoutAsync(1000); // Ждём появления ошибки
 
         // Assert
         var isError = await dishesPage.IsErrorToastVisibleAsync();
@@ -259,6 +276,7 @@ public class CreateDishTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = 50
         });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         var dish = new CreateDishDto
         {
@@ -298,6 +316,7 @@ public class CreateDishTests
         await productsPage.CreateProductAsync(new CreateProductDto { Name = "Продукт 1", Category = "Vegetables", CookingRequirement = "ReadyToUse", CaloriesPer100g = 50 });
         await productsPage.CreateProductAsync(new CreateProductDto { Name = "Продукт 2", Category = "Vegetables", CookingRequirement = "ReadyToUse", CaloriesPer100g = 60 });
         await productsPage.CreateProductAsync(new CreateProductDto { Name = "Продукт 3", Category = "Vegetables", CookingRequirement = "ReadyToUse", CaloriesPer100g = 70 });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         var dish = new CreateDishDto
         {
@@ -343,6 +362,7 @@ public class CreateDishTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = 50
         });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         var dish = new CreateDishDto
         {
@@ -389,8 +409,10 @@ public class CreateDishTests
             Name = "Яблоко",
             Category = "Vegetables",
             CookingRequirement = "ReadyToUse",
-            CaloriesPer100g = 52
+            CaloriesPer100g = 52,
+            Flags = "Vegan"
         });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         var dish = new CreateDishDto
         {
@@ -438,6 +460,7 @@ public class CreateDishTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = 0
         });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         var dish = new CreateDishDto
         {

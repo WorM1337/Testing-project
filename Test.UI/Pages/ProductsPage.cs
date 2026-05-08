@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using Microsoft.Playwright;
 using Test.UI.Pages.Locators;
 
@@ -18,7 +19,7 @@ public class ProductsPage : BasePage
 
     // Кнопки
     private ILocator AddButton => Page.Locator(ProductsLocators.AddButton);
-    private ILocator SaveButton => Page.Locator(ProductsLocators.SaveButton);
+    public ILocator SaveButton => Page.Locator(ProductsLocators.SaveButton);
     
     // Поля формы
     private ILocator NameInput => Page.Locator(ProductsLocators.NameInput);
@@ -97,6 +98,18 @@ public class ProductsPage : BasePage
 
         if (!string.IsNullOrEmpty(dto.Composition))
             await CompositionTextarea.FillAsync(dto.Composition);
+
+        // Устанавливаем флаги, если указаны
+        if (!string.IsNullOrEmpty(dto.Flags))
+        {
+            var flags = dto.Flags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (flags.Any(f => f.Equals("Vegan", StringComparison.OrdinalIgnoreCase)) && !await VeganFlagCheckbox.IsCheckedAsync())
+                await VeganFlagCheckbox.CheckAsync();
+            if (flags.Any(f => f.Equals("GlutenFree", StringComparison.OrdinalIgnoreCase)) && !await GlutenFreeFlagCheckbox.IsCheckedAsync())
+                await GlutenFreeFlagCheckbox.CheckAsync();
+            if (flags.Any(f => f.Equals("SugarFree", StringComparison.OrdinalIgnoreCase)) && !await SugarFreeFlagCheckbox.IsCheckedAsync())
+                await SugarFreeFlagCheckbox.CheckAsync();
+        }
     }
 
     /// <summary>
@@ -121,6 +134,10 @@ public class ProductsPage : BasePage
     {
         await SaveButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
         await SaveButton.ClickAsync();
+        // Ждём появления toast-уведомления (это сигнал, что сохранение прошло)
+        var toast = Page.Locator(".toast.success, .toast.error").Last;
+        await toast.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+        await Page.WaitForTimeoutAsync(300); // Небольшая пауза для закрытия модалки
     }
 
     /// <summary>
@@ -158,10 +175,10 @@ public class ProductsPage : BasePage
         var row = TableBody.Locator($"tr:has-text('{productName}')");
         try
         {
-            await row.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
-            return true;
+            var count = await row.CountAsync();
+            return count > 0;
         }
-        catch (TimeoutException)
+        catch (Exception)
         {
             return false;
         }
@@ -241,19 +258,20 @@ public class ProductsPage : BasePage
         await row.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
         
         var deleteButton = row.Locator("[data-testid='delete-btn']");
-        await deleteButton.ClickAsync();
         
-        // Подтверждаем удаление (если есть диалог)
-        try
+        // Обрабатываем диалог подтверждения
+        await HandleConfirmationDialogAsync(async () =>
         {
-            var confirmButton = Page.Locator("[data-testid='confirm-delete-btn']");
-            await confirmButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 2000 });
-            await confirmButton.ClickAsync();
-        }
-        catch (TimeoutException)
-        {
-            // Диалога подтверждения нет, удаление произошло сразу
-        }
+            await deleteButton.ClickAsync();
+        });
+        
+        // Ждём появления toast-уведомления об успешном удалении
+        var toast = Page.Locator(".toast.success").Last;
+        await toast.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+        await Page.WaitForTimeoutAsync(100);
+        
+        // Ждём обновления таблицы (исчезновения строки)
+        await row.WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 5000 });
     }
 
     /// <summary>
@@ -261,10 +279,21 @@ public class ProductsPage : BasePage
     /// </summary>
     public async Task<bool> IsProductNotInTableAsync(string productName)
     {
-        await Page.WaitForTimeoutAsync(1000); // Небольшая задержка для обновления таблицы
-        var row = TableBody.Locator($"tr:has-text('{productName}')");
-        var count = await row.CountAsync();
-        return count == 0;
+        // Ждём, пока таблица обновится после удаления
+        await Page.WaitForTimeoutAsync(2000);
+        
+        // Пробуем найти строку с продуктом несколько раз
+        for (int i = 0; i < 3; i++)
+        {
+            var row = TableBody.Locator($"tr:has-text('{productName}')");
+            var count = await row.CountAsync();
+            if (count == 0)
+                return true;
+            
+            // Если строка ещё есть, ждём и пробуем снова
+            await Page.WaitForTimeoutAsync(500);
+        }
+        return false;
     }
 
     /// <summary>
@@ -299,4 +328,5 @@ public class CreateProductDto
     public decimal? FatsPer100g { get; set; }
     public decimal? CarbsPer100g { get; set; }
     public string? Composition { get; set; }
+    public string? Flags { get; set; }
 }

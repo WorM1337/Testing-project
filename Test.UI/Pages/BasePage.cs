@@ -16,6 +16,8 @@ public abstract class BasePage
         BaseUrl = baseUrl;
     }
 
+    private EventHandler<IDialog>? _dialogHandler;
+
     /// <summary>
     /// Переходит на страницу
     /// </summary>
@@ -52,10 +54,13 @@ public abstract class BasePage
     /// </summary>
     public async Task<bool> IsSuccessToastVisibleAsync()
     {
-        var toast = Page.Locator(".toast.success");
+        var toast = Page.Locator(".toast.success").Last;
         try
         {
-            await toast.First.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+            // Ждём появления toast с небольшим таймаутом
+            await toast.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 2000 });
+            // Небольшая пауза, чтобы toast точно отрисовался
+            await Page.WaitForTimeoutAsync(100);
             // Закрываем все toast уведомления после проверки
             await CloseAllToastsAsync();
             return true;
@@ -67,14 +72,19 @@ public abstract class BasePage
     }
 
     /// <summary>
-    /// Проверяет наличие уведомления об ошибке
+    /// Проверяет наличие уведомления об ошибке и закрывает его
     /// </summary>
     public async Task<bool> IsErrorToastVisibleAsync()
     {
-        var toast = Page.Locator(".toast.error");
+        var toast = Page.Locator(".toast.error").Last;
         try
         {
-            await toast.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+            // Ждём появления toast с небольшим таймаутом
+            await toast.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 2000 });
+            // Небольшая пауза, чтобы toast точно отрисовался
+            await Page.WaitForTimeoutAsync(100);
+            // Закрываем все toast уведомления после проверки
+            await CloseAllToastsAsync();
             return true;
         }
         catch (TimeoutException)
@@ -123,20 +133,65 @@ public abstract class BasePage
     /// </summary>
     public async Task CloseAllToastsAsync()
     {
-        var closeButtons = Page.Locator(".toast-close");
-        var count = await closeButtons.CountAsync();
+        var toasts = Page.Locator(".toast.success, .toast.error");
+        var count = await toasts.CountAsync();
         
         for (int i = 0; i < count; i++)
         {
             try
             {
-                await closeButtons.First.ClickAsync();
-                await Page.WaitForTimeoutAsync(100);
+                // Закрываем каждый toast по индексу
+                var closeButton = toasts.Nth(i).Locator(".toast-close");
+                if (await closeButton.IsVisibleAsync())
+                {
+                    await closeButton.ClickAsync();
+                    await Page.WaitForTimeoutAsync(100);
+                }
             }
             catch
             {
                 // Toast уже закрыт
                 break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Обрабатывает диалог подтверждения (confirm)
+    /// </summary>
+    public async Task HandleConfirmationDialogAsync(Func<Task> clickAction)
+    {
+        var dialogTcs = new TaskCompletionSource<IDialog>();
+        
+        // Создаём обработчик, который выполнится только один раз
+        _dialogHandler = async (sender, dialog) =>
+        {
+            if (!dialogTcs.Task.IsCompleted)
+            {
+                dialogTcs.TrySetResult(dialog);
+                await dialog.AcceptAsync();
+            }
+        };
+        
+        // Подписываемся на диалог
+        Page.Dialog += _dialogHandler;
+        
+        try
+        {
+            // Выполняем действие, которое вызывает диалог
+            await clickAction();
+            
+            // Ждём обработки диалога
+            var dialog = await dialogTcs.Task;
+            await Page.WaitForTimeoutAsync(300);
+        }
+        finally
+        {
+            // Отписываемся после обработки
+            if (_dialogHandler != null)
+            {
+                Page.Dialog -= _dialogHandler;
+                _dialogHandler = null;
             }
         }
     }

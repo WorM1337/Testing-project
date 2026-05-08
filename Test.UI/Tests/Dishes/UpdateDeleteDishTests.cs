@@ -47,6 +47,7 @@ public class UpdateDeleteDishTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = 50
         });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         await dishesPage.GoToDishesTabAsync();
         await dishesPage.CreateDishAsync(new CreateDishDto
@@ -55,6 +56,7 @@ public class UpdateDeleteDishTests
             Category = "Side",
             Ingredients = new List<IngredientDto> { new() { ProductName = "Продукт", AmountInGrams = 100 } }
         });
+        await dishesPage.IsSuccessToastVisibleAsync();
 
         // Act: обновляем название
         await dishesPage.EditDishAsync("Старое название", new CreateDishDto
@@ -93,6 +95,7 @@ public class UpdateDeleteDishTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = 50
         });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         await dishesPage.GoToDishesTabAsync();
         await dishesPage.CreateDishAsync(new CreateDishDto
@@ -101,6 +104,7 @@ public class UpdateDeleteDishTests
             Category = "Side",
             Ingredients = new List<IngredientDto> { new() { ProductName = "Продукт", AmountInGrams = 100 } }
         });
+        await dishesPage.IsSuccessToastVisibleAsync();
 
         // Act: меняем категорию
         await dishesPage.EditDishAsync("Блюдо", new CreateDishDto
@@ -136,6 +140,7 @@ public class UpdateDeleteDishTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = 50
         });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         await dishesPage.GoToDishesTabAsync();
         await dishesPage.CreateDishAsync(new CreateDishDto
@@ -144,6 +149,7 @@ public class UpdateDeleteDishTests
             Category = "Side",
             Ingredients = new List<IngredientDto> { new() { ProductName = "Продукт", AmountInGrams = 100 } }
         });
+        await dishesPage.IsSuccessToastVisibleAsync();
 
         // Act: обновляем КБЖУ
         await dishesPage.EditDishAsync("Блюдо", new CreateDishDto
@@ -191,6 +197,7 @@ public class UpdateDeleteDishTests
             Category = "Side",
             Ingredients = new List<IngredientDto> { new() { ProductName = "Продукт", AmountInGrams = 100 } }
         });
+        await dishesPage.IsSuccessToastVisibleAsync();
 
         // Act: обновляем на минимальную длину
         await dishesPage.EditDishAsync("Длинное название", new CreateDishDto
@@ -226,6 +233,7 @@ public class UpdateDeleteDishTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = 50
         });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         await dishesPage.GoToDishesTabAsync();
         await dishesPage.CreateDishAsync(new CreateDishDto
@@ -234,18 +242,24 @@ public class UpdateDeleteDishTests
             Category = "Side",
             Ingredients = new List<IngredientDto> { new() { ProductName = "Продукт", AmountInGrams = 100 } }
         });
+        await dishesPage.IsSuccessToastVisibleAsync();
 
         // Act: пытаемся обновить на 1 символ
         await dishesPage.OpenEditModalAsync("Нормальное название");
         await dishesPage.FillDishFormAsync(new CreateDishDto
         {
             Name = "Б"
-        });
-        await dishesPage.SaveDishAsync();
-
+        }, isEdit: true);
+        // Кликаем кнопку сохранения, но не ждём закрытия модалки (ошибка валидации)
+        await dishesPage.SaveButton.ClickAsync();
+        await page.WaitForTimeoutAsync(500); // Ждём появления ошибки
+        
         // Assert
         var isError = await dishesPage.IsErrorToastVisibleAsync();
         isError.Should().BeTrue();
+        
+        // Закрываем модалку после ошибки
+        await dishesPage.CloseModalAsync();
     }
 
     /// <summary>
@@ -270,6 +284,7 @@ public class UpdateDeleteDishTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = 50
         });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         await dishesPage.GoToDishesTabAsync();
         await dishesPage.CreateDishAsync(new CreateDishDto
@@ -285,12 +300,17 @@ public class UpdateDeleteDishTests
         {
             Name = "Блюдо",
             CaloriesPerServing = -100
-        });
-        await dishesPage.SaveDishAsync();
-
+        }, isEdit: true);
+        // Кликаем кнопку сохранения, но не ждём закрытия модалки (ошибка валидации)
+        await dishesPage.SaveButton.ClickAsync();
+        await page.WaitForTimeoutAsync(500); // Ждём появления ошибки
+        
         // Assert
         var isError = await dishesPage.IsErrorToastVisibleAsync();
         isError.Should().BeTrue();
+        
+        // Закрываем модалку после ошибки
+        await dishesPage.CloseModalAsync();
     }
 
     #endregion
@@ -319,6 +339,7 @@ public class UpdateDeleteDishTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = 50
         });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         await dishesPage.GoToDishesTabAsync();
         await dishesPage.CreateDishAsync(new CreateDishDto
@@ -327,6 +348,7 @@ public class UpdateDeleteDishTests
             Category = "Side",
             Ingredients = new List<IngredientDto> { new() { ProductName = "Продукт", AmountInGrams = 100 } }
         });
+        await dishesPage.IsSuccessToastVisibleAsync();
 
         // Act: удаляем блюдо
         await dishesPage.DeleteDishAsync("Блюдо для удаления");
@@ -371,18 +393,21 @@ public class UpdateDeleteDishTests
             Category = "Side",
             Ingredients = new List<IngredientDto> { new() { ProductName = "Продукт", AmountInGrams = 100 } }
         });
+        await dishesPage.IsSuccessToastVisibleAsync();
         await dishesPage.CreateDishAsync(new CreateDishDto
         {
             Name = "Блюдо 2",
             Category = "Soup",
             Ingredients = new List<IngredientDto> { new() { ProductName = "Продукт", AmountInGrams = 150 } }
         });
+        await dishesPage.IsSuccessToastVisibleAsync();
         await dishesPage.CreateDishAsync(new CreateDishDto
         {
             Name = "Блюдо 3",
             Category = "Salad",
             Ingredients = new List<IngredientDto> { new() { ProductName = "Продукт", AmountInGrams = 200 } }
         });
+        await dishesPage.IsSuccessToastVisibleAsync();
 
         // Act: удаляем все блюда
         await dishesPage.DeleteDishAsync("Блюдо 1");
@@ -416,6 +441,7 @@ public class UpdateDeleteDishTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = 50
         });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         var longName = new string('А', 50);
         await dishesPage.GoToDishesTabAsync();
@@ -425,6 +451,7 @@ public class UpdateDeleteDishTests
             Category = "Side",
             Ingredients = new List<IngredientDto> { new() { ProductName = "Продукт", AmountInGrams = 100 } }
         });
+        await dishesPage.IsSuccessToastVisibleAsync();
 
         // Act: удаляем блюдо
         await dishesPage.DeleteDishAsync(longName);
@@ -456,6 +483,7 @@ public class UpdateDeleteDishTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = 50
         });
+        await productsPage.IsSuccessToastVisibleAsync();
 
         var dishName = "Уникальное блюдо";
         await dishesPage.GoToDishesTabAsync();
@@ -465,6 +493,7 @@ public class UpdateDeleteDishTests
             Category = "Side",
             Ingredients = new List<IngredientDto> { new() { ProductName = "Продукт", AmountInGrams = 100 } }
         });
+        await dishesPage.IsSuccessToastVisibleAsync();
 
         // Act 1: удаляем блюдо
         await dishesPage.DeleteDishAsync(dishName);

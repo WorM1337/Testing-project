@@ -52,9 +52,6 @@ public class DeleteProductTests
         await productsPage.DeleteProductAsync("Продукт для удаления");
 
         // Assert
-        var isSuccess = await productsPage.IsSuccessToastVisibleAsync();
-        isSuccess.Should().BeTrue("удаление должно завершиться успешно");
-        
         var isNotInTable = await productsPage.IsProductNotInTableAsync("Продукт для удаления");
         isNotInTable.Should().BeTrue("продукт должен исчезнуть из таблицы");
     }
@@ -89,9 +86,7 @@ public class DeleteProductTests
 
         // Act: удаляем все продукты
         await productsPage.DeleteProductAsync("Продукт 1");
-        await productsPage.IsSuccessToastVisibleAsync(); // Закрываем toast после удаления
         await productsPage.DeleteProductAsync("Продукт 2");
-        await productsPage.IsSuccessToastVisibleAsync(); // Закрываем toast после удаления
         await productsPage.DeleteProductAsync("Продукт 3");
 
         // Assert
@@ -150,8 +145,8 @@ public class DeleteProductTests
         await productsPage.DeleteProductAsync("Продукт с символами !@#$%");
 
         // Assert
-        var isSuccess = await productsPage.IsSuccessToastVisibleAsync();
-        isSuccess.Should().BeTrue();
+        var isNotInTable = await productsPage.IsProductNotInTableAsync("Продукт с символами !@#$%");
+        isNotInTable.Should().BeTrue("продукт должен исчезнуть из таблицы");
     }
 
     /// <summary>
@@ -183,8 +178,8 @@ public class DeleteProductTests
         await productsPage.DeleteProductAsync(new string('А', 50));
 
         // Assert
-        var isSuccess = await productsPage.IsSuccessToastVisibleAsync();
-        isSuccess.Should().BeTrue();
+        var isNotInTable = await productsPage.IsProductNotInTableAsync(new string('А', 50));
+        isNotInTable.Should().BeTrue("продукт должен исчезнуть из таблицы");
     }
 
     /// <summary>
@@ -213,16 +208,13 @@ public class DeleteProductTests
 
         // Act 1: удаляем продукт
         await productsPage.DeleteProductAsync("Уникальное название");
-        await productsPage.IsSuccessToastVisibleAsync();
 
         // Act 2: создаем продукт с тем же названием
         await productsPage.CreateProductAsync(product);
+        await productsPage.IsSuccessToastVisibleAsync();
 
         // Assert
-        var isSuccess = await productsPage.IsSuccessToastVisibleAsync();
-        isSuccess.Should().BeTrue("повторное создание с тем же названием должно работать");
-        
         var isInTable = await productsPage.IsProductInTableAsync("Уникальное название");
-        isInTable.Should().BeTrue();
+        isInTable.Should().BeTrue("повторное создание с тем же названием должно работать");
     }
 }

@@ -18,7 +18,7 @@ public class DishesPage : BasePage
 
     // Кнопки
     private ILocator AddButton => Page.Locator(DishesLocators.AddButton);
-    private ILocator SaveButton => Page.Locator(DishesLocators.SaveButton);
+    public ILocator SaveButton => Page.Locator(DishesLocators.SaveButton);
     private ILocator AddIngredientButton => Page.Locator(DishesLocators.AddIngredientButton);
     
     // Поля формы
@@ -76,9 +76,9 @@ public class DishesPage : BasePage
     }
 
     /// <summary>
-    /// Заполняет форму создания блюда
+    /// Заполняет форму создания/редактирования блюда
     /// </summary>
-    public async Task FillDishFormAsync(CreateDishDto dto)
+    public async Task FillDishFormAsync(CreateDishDto dto, bool isEdit = false)
     {
         if (!string.IsNullOrEmpty(dto.Name))
             await NameInput.FillAsync(dto.Name);
@@ -87,12 +87,29 @@ public class DishesPage : BasePage
             await CategorySelect.SelectOptionAsync(dto.Category);
 
         // Используем инвариантную культуру для чисел
-        // Заполняем ВСЕ числовые поля, даже если они не указаны (используем 0 как default)
-        await ServingSizeInput.FillAsync((dto.ServingSize ?? 0).ToString(CultureInfo.InvariantCulture));
-        await CaloriesInput.FillAsync((dto.CaloriesPerServing ?? 0).ToString(CultureInfo.InvariantCulture));
-        await ProteinsInput.FillAsync((dto.ProteinsPerServing ?? 0).ToString(CultureInfo.InvariantCulture));
-        await FatsInput.FillAsync((dto.FatsPerServing ?? 0).ToString(CultureInfo.InvariantCulture));
-        await CarbsInput.FillAsync((dto.CarbsPerServing ?? 0).ToString(CultureInfo.InvariantCulture));
+        // Для создания заполняем все поля (даже 0), для редактирования — только указанные
+        if (!isEdit)
+        {
+            await ServingSizeInput.FillAsync((dto.ServingSize ?? 0).ToString(CultureInfo.InvariantCulture));
+            await CaloriesInput.FillAsync((dto.CaloriesPerServing ?? 0).ToString(CultureInfo.InvariantCulture));
+            await ProteinsInput.FillAsync((dto.ProteinsPerServing ?? 0).ToString(CultureInfo.InvariantCulture));
+            await FatsInput.FillAsync((dto.FatsPerServing ?? 0).ToString(CultureInfo.InvariantCulture));
+            await CarbsInput.FillAsync((dto.CarbsPerServing ?? 0).ToString(CultureInfo.InvariantCulture));
+        }
+        else
+        {
+            // Для редактирования заполняем только указанные поля
+            if (dto.ServingSize.HasValue)
+                await ServingSizeInput.FillAsync(dto.ServingSize.Value.ToString(CultureInfo.InvariantCulture));
+            if (dto.CaloriesPerServing.HasValue)
+                await CaloriesInput.FillAsync(dto.CaloriesPerServing.Value.ToString(CultureInfo.InvariantCulture));
+            if (dto.ProteinsPerServing.HasValue)
+                await ProteinsInput.FillAsync(dto.ProteinsPerServing.Value.ToString(CultureInfo.InvariantCulture));
+            if (dto.FatsPerServing.HasValue)
+                await FatsInput.FillAsync(dto.FatsPerServing.Value.ToString(CultureInfo.InvariantCulture));
+            if (dto.CarbsPerServing.HasValue)
+                await CarbsInput.FillAsync(dto.CarbsPerServing.Value.ToString(CultureInfo.InvariantCulture));
+        }
     }
 
     /// <summary>
@@ -136,6 +153,11 @@ public class DishesPage : BasePage
     {
         await SaveButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
         await SaveButton.ClickAsync();
+        
+        // Ждём появления toast-уведомления (это сигнал, что сохранение прошло)
+        var toast = Page.Locator(".toast.success, .toast.error").Last;
+        await toast.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+        await Page.WaitForTimeoutAsync(500); // Пауза для закрытия модалки и отрисовки toast
     }
 
     /// <summary>
@@ -246,7 +268,7 @@ public class DishesPage : BasePage
     public async Task EditDishAsync(string dishName, CreateDishDto dto)
     {
         await OpenEditModalAsync(dishName);
-        await FillDishFormAsync(dto);
+        await FillDishFormAsync(dto, isEdit: true);
         await SaveDishAsync();
     }
 
@@ -259,19 +281,20 @@ public class DishesPage : BasePage
         await row.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
         
         var deleteButton = row.Locator("[data-testid='delete-btn']");
-        await deleteButton.ClickAsync();
         
-        // Подтверждаем удаление (если есть диалог)
-        try
+        // Обрабатываем диалог подтверждения
+        await HandleConfirmationDialogAsync(async () =>
         {
-            var confirmButton = Page.Locator("[data-testid='confirm-delete-btn']");
-            await confirmButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 2000 });
-            await confirmButton.ClickAsync();
-        }
-        catch (TimeoutException)
-        {
-            // Диалога подтверждения нет, удаление произошло сразу
-        }
+            await deleteButton.ClickAsync();
+        });
+        
+        // Ждём появления toast-уведомления об успешном удалении
+        var toast = Page.Locator(".toast.success").Last;
+        await toast.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+        await Page.WaitForTimeoutAsync(100);
+        
+        // Ждём обновления таблицы (исчезновения строки)
+        await row.WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 5000 });
     }
 
     /// <summary>
