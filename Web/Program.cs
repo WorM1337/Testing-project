@@ -53,6 +53,10 @@ if (app.Environment.IsDevelopment())
 }
 app.UseStaticFiles();
 app.MapControllers();
+
+// Fallback для SPA - возвращает index.html для всех не-API запросов
+app.MapFallbackToFile("index.html");
+
 app.Run();
 
 public partial class Program { }

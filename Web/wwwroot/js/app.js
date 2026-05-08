@@ -253,6 +253,19 @@ const app = {
 
     document.getElementById("list-title").textContent = config.title;
 
+    // Toggle add buttons visibility based on current entity
+    const productAddBtn = document.getElementById("add-product-btn");
+    const dishAddBtn = document.getElementById("add-dish-btn");
+    if (productAddBtn && dishAddBtn) {
+      if (entity === "products") {
+        productAddBtn.style.display = "inline-block";
+        dishAddBtn.style.display = "none";
+      } else {
+        productAddBtn.style.display = "none";
+        dishAddBtn.style.display = "inline-block";
+      }
+    }
+
     // Populate filter category dropdown
     const catSelect = document.getElementById("filter-category");
     catSelect.innerHTML =

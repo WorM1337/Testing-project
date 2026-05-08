@@ -404,7 +404,9 @@ const components = {
               "event",
               `event, ${item.id}`,
             );
-            return `<button class="btn ${btnClass} btn-sm" onclick="${onClickHandler}">${action.label}</button>`;
+            // Add data-testid based on action label
+            const testId = action.label === "👁️" ? "view-btn" : action.label === "✏️" ? "edit-btn" : "delete-btn";
+            return `<button class="btn ${btnClass} btn-sm" data-testid="${testId}" onclick="${onClickHandler}">${action.label}</button>`;
           })
           .join("");
 
