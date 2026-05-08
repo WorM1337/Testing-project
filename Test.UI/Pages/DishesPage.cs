@@ -52,7 +52,7 @@ public class DishesPage : BasePage
     private ILocator ResetFiltersButton => Page.Locator(DishesLocators.ResetFiltersButton);
     
     // Модальное окно
-    private ILocator ModalOverlay => Page.Locator(DishesLocators.ModalOverlay);
+    public ILocator ModalOverlay => Page.Locator(DishesLocators.ModalOverlay);
 
     #endregion
 
@@ -73,6 +73,15 @@ public class DishesPage : BasePage
     {
         await AddButton.ClickAsync();
         await ModalOverlay.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
+
+    /// <summary>
+    /// Закрывает модальное окно
+    /// </summary>
+    public new async Task CloseModalAsync()
+    {
+        await Page.Keyboard.PressAsync("Escape");
+        await ModalOverlay.WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 2000 });
     }
 
     /// <summary>

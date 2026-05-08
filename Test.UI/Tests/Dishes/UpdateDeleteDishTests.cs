@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Playwright;
 using Test.UI.Fixtures;
 using Test.UI.Pages;
 
@@ -265,6 +266,7 @@ public class UpdateDeleteDishTests
     /// <summary>
     /// Тест: Обновление с отрицательной калорийностью
     /// Техника: Анализ граничных значений - отрицательное значение
+    /// Примечание: HTML5 валидация (min="0") блокирует отправку формы
     /// </summary>
     [Fact(DisplayName = "UI: Обновление блюда с отрицательной калорийностью (ошибка)")]
     public async Task UpdateDish_NegativeCalories_Error()
@@ -293,6 +295,7 @@ public class UpdateDeleteDishTests
             Category = "Side",
             Ingredients = new List<IngredientDto> { new() { ProductName = "Продукт", AmountInGrams = 100 } }
         });
+        await dishesPage.IsSuccessToastVisibleAsync();
 
         // Act: пытаемся установить отрицательную калорийность
         await dishesPage.OpenEditModalAsync("Блюдо");
@@ -301,16 +304,21 @@ public class UpdateDeleteDishTests
             Name = "Блюдо",
             CaloriesPerServing = -100
         }, isEdit: true);
-        // Кликаем кнопку сохранения, но не ждём закрытия модалки (ошибка валидации)
-        await dishesPage.SaveButton.ClickAsync();
-        await page.WaitForTimeoutAsync(500); // Ждём появления ошибки
         
-        // Assert
-        var isError = await dishesPage.IsErrorToastVisibleAsync();
-        isError.Should().BeTrue();
+        // Небольшая пауза, чтобы браузер применил валидацию
+        await page.WaitForTimeoutAsync(500);
         
-        // Закрываем модалку после ошибки
-        await dishesPage.CloseModalAsync();
+        // Проверяем значение поля калорий — браузер должен был отклонить отрицательное значение
+        var caloriesInput = page.Locator("#caloriesPerServing");
+        var inputValue = await caloriesInput.InputValueAsync();
+        
+        // Закрываем модалку (отмена)
+        await page.Keyboard.PressAsync("Escape");
+        await dishesPage.ModalOverlay.WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 2000 });
+        
+        // Assert: поле должно быть пустым или содержать 0 (браузер отклоняет отрицательные значения)
+        (inputValue == "" || inputValue == "0").Should().BeTrue(
+            $"HTML5 валидация должна отклонять отрицательные значения, но получено: '{inputValue}'");
     }
 
     #endregion

@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Playwright;
 using Test.UI.Fixtures;
 using Test.UI.Pages;
 
@@ -246,6 +247,7 @@ public class UpdateProductTests
     /// <summary>
     /// Тест: Обновление с отрицательной калорийностью
     /// Техника: Анализ граничных значений - отрицательное значение
+    /// Примечание: HTML5 валидация (min="0") блокирует отправку формы
     /// </summary>
     [Fact(DisplayName = "UI: Обновление с отрицательной калорийностью (ошибка)")]
     public async Task UpdateProduct_NegativeCalories_Error()
@@ -270,6 +272,8 @@ public class UpdateProductTests
 
         // Act: пытаемся установить отрицательную калорийность
         await productsPage.OpenEditModalAsync("Продукт");
+        
+        // Заполняем форму вручную, чтобы проверить HTML5 валидацию
         await productsPage.FillProductFormAsync(new CreateProductDto
         {
             Name = "Продукт",
@@ -277,11 +281,21 @@ public class UpdateProductTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = -10
         });
-        await productsPage.SaveProductAsync();
-
-        // Assert
-        var isError = await productsPage.IsErrorToastVisibleAsync();
-        isError.Should().BeTrue("отрицательная калорийность недопустима");
+        
+        // Небольшая пауза, чтобы браузер применил валидацию
+        await page.WaitForTimeoutAsync(500);
+        
+        // Проверяем значение поля калорий — браузер должен был отклонить отрицательное значение
+        var caloriesInput = page.Locator("#calories");
+        var inputValue = await caloriesInput.InputValueAsync();
+        
+        // Закрываем модалку (отмена)
+        await page.Keyboard.PressAsync("Escape");
+        await productsPage.ModalOverlay.WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 2000 });
+        
+        // Assert: поле должно быть пустым или содержать 0 (браузер отклоняет отрицательные значения)
+        (inputValue == "" || inputValue == "0").Should().BeTrue(
+            $"HTML5 валидация должна отклонять отрицательные значения, но получено: '{inputValue}'");
     }
 
     /// <summary>

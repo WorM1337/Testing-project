@@ -210,6 +210,7 @@ public class CreateDishTests
     /// <summary>
     /// Тест: Создание блюда без ингредиентов
     /// Техника: Эквивалентное разбиение - невалидный класс (пустые ингредиенты)
+    /// Примечание: JavaScript валидация блокирует отправку формы
     /// </summary>
     [Fact(DisplayName = "UI: Создание блюда без ингредиентов (ошибка)")]
     public async Task CreateDish_NoIngredients_Error()
@@ -248,9 +249,12 @@ public class CreateDishTests
         await dishesPage.SaveButton.ClickAsync();
         await page.WaitForTimeoutAsync(1000); // Ждём появления ошибки
 
-        // Assert
-        var isError = await dishesPage.IsErrorToastVisibleAsync();
-        isError.Should().BeTrue("блюдо без ингредиентов недопустимо");
+        // Assert: проверяем, что модалка осталась открытой (валидация не пропустила)
+        var modalVisible = await dishesPage.ModalOverlay.IsVisibleAsync();
+        modalVisible.Should().BeTrue("JavaScript валидация должна блокировать создание блюда без ингредиентов");
+        
+        // Закрываем модалку после теста
+        await dishesPage.CloseModalAsync();
     }
 
     /// <summary>
@@ -430,6 +434,8 @@ public class CreateDishTests
         await dishesPage.FillDishFormAsync(dish);
         await dishesPage.AddIngredientAsync("Яблоко", 200);
         await dishesPage.SetFlagsAsync(vegan: true);
+        
+        // Сохраняем и ждём toast правильно
         await dishesPage.SaveDishAsync();
 
         // Assert

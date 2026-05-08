@@ -51,7 +51,7 @@ public class ProductsPage : BasePage
     private ILocator ResetFiltersButton => Page.Locator(ProductsLocators.ResetFiltersButton);
     
     // Модальное окно
-    private ILocator ModalOverlay => Page.Locator(ProductsLocators.ModalOverlay);
+    public ILocator ModalOverlay => Page.Locator(ProductsLocators.ModalOverlay);
     private ILocator ModalTitle => Page.Locator(ProductsLocators.ModalTitle);
 
     #endregion
@@ -73,6 +73,15 @@ public class ProductsPage : BasePage
     {
         await AddButton.ClickAsync();
         await ModalOverlay.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
+
+    /// <summary>
+    /// Закрывает модальное окно
+    /// </summary>
+    public async Task CloseModalAsync()
+    {
+        await Page.Keyboard.PressAsync("Escape");
+        await ModalOverlay.WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 2000 });
     }
 
     /// <summary>
