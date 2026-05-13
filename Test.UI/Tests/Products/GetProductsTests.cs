@@ -12,15 +12,11 @@ namespace Test.UI.Tests.Products;
 /// - Анализ граничных значений (поиск по названию)
 /// </summary>
 [Collection("UI Tests")]
-public class GetProductsTests
+public class GetProductsTests : UiTestBase
 {
-    private readonly BrowserFixture _browserFixture;
-    private readonly DatabaseFixture _databaseFixture;
-
     public GetProductsTests(BrowserFixture browserFixture, DatabaseFixture databaseFixture)
+        : base(browserFixture, databaseFixture)
     {
-        _browserFixture = browserFixture;
-        _databaseFixture = databaseFixture;
     }
 
     /// <summary>
@@ -31,10 +27,7 @@ public class GetProductsTests
     public async Task GetProducts_AllProducts_Displayed()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (_, _, productsPage) = await InitializeTestAsync();
 
         // Создаем несколько продуктов
         var products = new[]
@@ -48,7 +41,7 @@ public class GetProductsTests
         foreach (var p in products)
         {
             await productsPage.CreateProductAsync(p);
-            await productsPage.IsSuccessToastVisibleAsync(); // Закрываем toast после создания
+            await productsPage.IsSuccessToastVisibleAsync();
         }
 
         // Act: переходим на страницу продуктов
@@ -67,10 +60,7 @@ public class GetProductsTests
     public async Task GetProducts_SearchExactName_Found()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (_, _, productsPage) = await InitializeTestAsync();
 
         var uniqueName = $"Уникальный продукт {Guid.NewGuid():N}";
         var product = new CreateProductDto
@@ -83,7 +73,7 @@ public class GetProductsTests
 
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(product);
-        await productsPage.IsSuccessToastVisibleAsync(); // Закрываем toast после создания
+        await productsPage.IsSuccessToastVisibleAsync();
 
         // Act: ищем по точному названию
         await productsPage.FilterBySearchAsync(uniqueName);
@@ -101,10 +91,7 @@ public class GetProductsTests
     public async Task GetProducts_SearchPartialName_Found()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (_, _, productsPage) = await InitializeTestAsync();
 
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
@@ -114,7 +101,7 @@ public class GetProductsTests
             CookingRequirement = "RequiresCooking",
             CaloriesPer100g = 77
         });
-        await productsPage.IsSuccessToastVisibleAsync(); // Закрываем toast после создания
+        await productsPage.IsSuccessToastVisibleAsync();
 
         // Act: ищем по части названия
         await productsPage.FilterBySearchAsync("Картофель");
@@ -132,10 +119,7 @@ public class GetProductsTests
     public async Task GetProducts_SearchNonExistent_NotFound()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (_, _, productsPage) = await InitializeTestAsync();
 
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
@@ -145,7 +129,7 @@ public class GetProductsTests
             CookingRequirement = "ReadyToUse",
             CaloriesPer100g = 50
         });
-        await productsPage.IsSuccessToastVisibleAsync(); // Закрываем toast после создания
+        await productsPage.IsSuccessToastVisibleAsync();
 
         // Act: ищем несуществующий продукт
         await productsPage.FilterBySearchAsync("Несуществующий продукт XYZ");
@@ -163,10 +147,7 @@ public class GetProductsTests
     public async Task GetProducts_FilterByCategory_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         await productsPage.GoToProductsTabAsync();
         
@@ -215,10 +196,7 @@ public class GetProductsTests
     public async Task GetProducts_SortByCaloriesDescending_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         await productsPage.GoToProductsTabAsync();
         
@@ -272,10 +250,7 @@ public class GetProductsTests
     public async Task GetProducts_ResetFilters_ShowAll()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         await productsPage.GoToProductsTabAsync();
         
@@ -319,10 +294,7 @@ public class GetProductsTests
     public async Task GetProducts_SearchSingleCharacter_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (_, _, productsPage) = await InitializeTestAsync();
 
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto

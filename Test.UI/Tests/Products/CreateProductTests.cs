@@ -12,17 +12,11 @@ namespace Test.UI.Tests.Products;
 /// - Анализ граничных значений (тестирование на границах диапазонов)
 /// </summary>
 [Collection("UI Tests")]
-public class CreateProductTests
+public class CreateProductTests : UiTestBase
 {
-    private readonly BrowserFixture _browserFixture;
-    private readonly DatabaseFixture _databaseFixture;
-    private readonly string _baseUrl;
-
     public CreateProductTests(BrowserFixture browserFixture, DatabaseFixture databaseFixture)
+        : base(browserFixture, databaseFixture)
     {
-        _browserFixture = browserFixture;
-        _databaseFixture = databaseFixture;
-        _baseUrl = browserFixture.BaseUrl;
     }
 
     /// <summary>
@@ -33,10 +27,7 @@ public class CreateProductTests
     public async Task CreateProduct_ValidData_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _baseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -69,9 +60,7 @@ public class CreateProductTests
     public async Task CreateProduct_NameMinBoundary_Success()
     {
         // Arrange
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _baseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -101,9 +90,7 @@ public class CreateProductTests
     public async Task CreateProduct_NameMaxBoundary_Success()
     {
         // Arrange
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _baseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -133,9 +120,7 @@ public class CreateProductTests
     public async Task CreateProduct_NameBelowMinBoundary_Error()
     {
         // Arrange
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _baseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -167,9 +152,7 @@ public class CreateProductTests
     public async Task CreateProduct_ZeroCalories_Success()
     {
         // Arrange
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _baseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -199,9 +182,7 @@ public class CreateProductTests
     public async Task CreateProduct_MacrosSumExactly100_Success()
     {
         // Arrange
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _baseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -242,9 +223,7 @@ public class CreateProductTests
     public async Task CreateProduct_MacrosSumAbove100_Error()
     {
         // Arrange
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _baseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -291,9 +270,7 @@ public class CreateProductTests
     public async Task CreateProduct_WithVeganFlag_Success()
     {
         // Arrange
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _baseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -326,9 +303,7 @@ public class CreateProductTests
     public async Task CreateProduct_WithAllFlags_Success()
     {
         // Arrange
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _baseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {

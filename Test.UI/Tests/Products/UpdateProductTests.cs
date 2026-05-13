@@ -12,15 +12,11 @@ namespace Test.UI.Tests.Products;
 /// - Анализ граничных значений (границы полей)
 /// </summary>
 [Collection("UI Tests")]
-public class UpdateProductTests
+public class UpdateProductTests : UiTestBase
 {
-    private readonly BrowserFixture _browserFixture;
-    private readonly DatabaseFixture _databaseFixture;
-
     public UpdateProductTests(BrowserFixture browserFixture, DatabaseFixture databaseFixture)
+        : base(browserFixture, databaseFixture)
     {
-        _browserFixture = browserFixture;
-        _databaseFixture = databaseFixture;
     }
 
     /// <summary>
@@ -31,10 +27,7 @@ public class UpdateProductTests
     public async Task UpdateProduct_Name_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (_, _, productsPage) = await InitializeTestAsync();
 
         // Создаем продукт для обновления
         var product = new CreateProductDto
@@ -82,10 +75,7 @@ public class UpdateProductTests
     public async Task UpdateProduct_Calories_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (_, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -129,10 +119,7 @@ public class UpdateProductTests
     public async Task UpdateProduct_NameMinBoundary_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (_, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -170,10 +157,7 @@ public class UpdateProductTests
     public async Task UpdateProduct_NameMaxBoundary_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (_, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -211,10 +195,7 @@ public class UpdateProductTests
     public async Task UpdateProduct_NameTooShort_Error()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (_, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -253,10 +234,7 @@ public class UpdateProductTests
     public async Task UpdateProduct_NegativeCalories_Error()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -306,10 +284,7 @@ public class UpdateProductTests
     public async Task UpdateProduct_MacrosSumAbove100_Error()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (_, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -358,10 +333,7 @@ public class UpdateProductTests
     public async Task UpdateProduct_AddVeganFlag_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (_, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {

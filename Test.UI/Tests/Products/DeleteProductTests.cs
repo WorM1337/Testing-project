@@ -11,15 +11,11 @@ namespace Test.UI.Tests.Products;
 /// - Анализ граничных значений (ID продуктов)
 /// </summary>
 [Collection("UI Tests")]
-public class DeleteProductTests
+public class DeleteProductTests : UiTestBase
 {
-    private readonly BrowserFixture _browserFixture;
-    private readonly DatabaseFixture _databaseFixture;
-
     public DeleteProductTests(BrowserFixture browserFixture, DatabaseFixture databaseFixture)
+        : base(browserFixture, databaseFixture)
     {
-        _browserFixture = browserFixture;
-        _databaseFixture = databaseFixture;
     }
 
     /// <summary>
@@ -30,10 +26,7 @@ public class DeleteProductTests
     public async Task DeleteProduct_Existing_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         // Создаем продукт для удаления
         var product = new CreateProductDto
@@ -64,10 +57,7 @@ public class DeleteProductTests
     public async Task DeleteProduct_Multiple_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         // Создаем несколько продуктов
         var products = new[]
@@ -81,7 +71,7 @@ public class DeleteProductTests
         foreach (var p in products)
         {
             await productsPage.CreateProductAsync(p);
-            await productsPage.IsSuccessToastVisibleAsync(); // Закрываем toast после создания
+            await productsPage.IsSuccessToastVisibleAsync();
         }
 
         // Act: удаляем все продукты
@@ -95,19 +85,14 @@ public class DeleteProductTests
     }
 
     /// <summary>
-    /// Тест: Попытка удаления несуществующего продукта (через прямой запрос)
-    /// Техника: Эквивалентное разбиение - несуществующий продукт
-    /// Примечание: UI не позволяет удалить несуществующий продукт напрямую,
-    /// но мы можем проверить поведение после обновления страницы
+    /// Тест: Проверка отсутствия кнопок удаления для пустой таблицы
+    /// Техника: Эквивалентное разбиение - пустая таблица
     /// </summary>
     [Fact(DisplayName = "UI: Проверка отсутствия кнопки удаления для пустой таблицы")]
     public async Task DeleteProduct_EmptyTable_NoDeleteButton()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         await productsPage.GoToProductsTabAsync();
 
@@ -124,10 +109,7 @@ public class DeleteProductTests
     public async Task DeleteProduct_SpecialCharacters_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -139,7 +121,7 @@ public class DeleteProductTests
 
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(product);
-        await productsPage.IsSuccessToastVisibleAsync(); // Закрываем toast после создания
+        await productsPage.IsSuccessToastVisibleAsync();
 
         // Act: удаляем продукт
         await productsPage.DeleteProductAsync("Продукт с символами !@#$%");
@@ -157,10 +139,7 @@ public class DeleteProductTests
     public async Task DeleteProduct_LongName_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
@@ -172,7 +151,7 @@ public class DeleteProductTests
 
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(product);
-        await productsPage.IsSuccessToastVisibleAsync(); // Закрываем toast после создания
+        await productsPage.IsSuccessToastVisibleAsync();
 
         // Act: удаляем продукт
         await productsPage.DeleteProductAsync(new string('А', 50));
@@ -190,10 +169,7 @@ public class DeleteProductTests
     public async Task DeleteProduct_RecreateSameName_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (page, _, productsPage) = await InitializeTestAsync();
 
         var product = new CreateProductDto
         {
