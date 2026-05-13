@@ -28,7 +28,7 @@ public class BrowserFixture : IDisposable
         
         _browser = await _playwright.Chromium.LaunchAsync(new()
         {
-            Headless = false,
+            Headless = bool.TryParse(Environment.GetEnvironmentVariable("PLAYWRIGHT_HEADLESS"), out var headless) ? headless : false,
             SlowMo = 100 // Замедление для лучшей наблюдаемости
         });
     }

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <MaxCpuCount>1</MaxCpuCount>
+    <EnvironmentVariables>
+      <PLAYWRIGHT_HEADLESS>false</PLAYWRIGHT_HEADLESS>
+      <PWDEBUG>1</PWDEBUG>
+    </EnvironmentVariables>
+  </RunConfiguration>
+</RunSettings>
