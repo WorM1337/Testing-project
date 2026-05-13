@@ -12,17 +12,9 @@ namespace Test.UI.Tests.Dishes;
 /// - Анализ граничных значений
 /// </summary>
 [Collection("UI Tests")]
-public class UpdateDeleteDishTests
+public class UpdateDeleteDishTests(BrowserFixture browserFixture, DatabaseFixture databaseFixture)
+    : UiTestBase(browserFixture, databaseFixture)
 {
-    private readonly BrowserFixture _browserFixture;
-    private readonly DatabaseFixture _databaseFixture;
-
-    public UpdateDeleteDishTests(BrowserFixture browserFixture, DatabaseFixture databaseFixture)
-    {
-        _browserFixture = browserFixture;
-        _databaseFixture = databaseFixture;
-    }
-
     #region Обновление блюд
 
     /// <summary>
@@ -33,13 +25,9 @@ public class UpdateDeleteDishTests
     public async Task UpdateDish_Name_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
         // Создаем продукт и блюдо
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -82,12 +70,8 @@ public class UpdateDeleteDishTests
     public async Task UpdateDish_Category_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
-
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
+        
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -127,12 +111,8 @@ public class UpdateDeleteDishTests
     public async Task UpdateDish_Nutrition_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -176,12 +156,8 @@ public class UpdateDeleteDishTests
     public async Task UpdateDish_NameMinBoundary_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -220,12 +196,8 @@ public class UpdateDeleteDishTests
     public async Task UpdateDish_NameTooShort_Error()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (page, dishesPage, productsPage) = await InitializeTestAsync();
 
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -279,12 +251,8 @@ public class UpdateDeleteDishTests
     public async Task UpdateDish_NegativeCalories_Error()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (page, dishesPage, productsPage) = await InitializeTestAsync();
 
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -340,12 +308,8 @@ public class UpdateDeleteDishTests
     public async Task DeleteDish_Existing_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -384,12 +348,8 @@ public class UpdateDeleteDishTests
     public async Task DeleteDish_Multiple_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -442,12 +402,8 @@ public class UpdateDeleteDishTests
     public async Task DeleteDish_LongName_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -484,12 +440,8 @@ public class UpdateDeleteDishTests
     public async Task DeleteDish_RecreateSameName_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {

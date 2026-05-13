@@ -12,15 +12,11 @@ namespace Test.UI.Tests.Dishes;
 /// - Анализ граничных значений (границы полей, количество ингредиентов)
 /// </summary>
 [Collection("UI Tests")]
-public class CreateDishTests
+public class CreateDishTests : UiTestBase
 {
-    private readonly BrowserFixture _browserFixture;
-    private readonly DatabaseFixture _databaseFixture;
-
     public CreateDishTests(BrowserFixture browserFixture, DatabaseFixture databaseFixture)
+        : base(browserFixture, databaseFixture)
     {
-        _browserFixture = browserFixture;
-        _databaseFixture = databaseFixture;
     }
 
     /// <summary>
@@ -31,13 +27,9 @@ public class CreateDishTests
     public async Task CreateDish_ValidData_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
         // Сначала создаем продукт для ингредиента
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -81,13 +73,9 @@ public class CreateDishTests
     public async Task CreateDish_NameMinBoundary_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
         // Создаем продукт
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -125,13 +113,9 @@ public class CreateDishTests
     public async Task CreateDish_NameMaxBoundary_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
         // Создаем продукт
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -169,13 +153,9 @@ public class CreateDishTests
     public async Task CreateDish_NameTooShort_Error()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
         // Создаем продукт
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -217,13 +197,9 @@ public class CreateDishTests
     public async Task CreateDish_NoIngredients_Error()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (page, dishesPage, productsPage) = await InitializeTestAsync();
 
         // Создаем продукт для теста
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -268,13 +244,9 @@ public class CreateDishTests
     public async Task CreateDish_OneIngredient_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
         // Создаем продукт
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -312,13 +284,9 @@ public class CreateDishTests
     public async Task CreateDish_MultipleIngredients_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
         // Создаем несколько продуктов
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto { Name = "Продукт 1", Category = "Vegetables", CookingRequirement = "ReadyToUse", CaloriesPer100g = 50 });
         await productsPage.CreateProductAsync(new CreateProductDto { Name = "Продукт 2", Category = "Vegetables", CookingRequirement = "ReadyToUse", CaloriesPer100g = 60 });
@@ -354,13 +322,9 @@ public class CreateDishTests
     public async Task CreateDish_WithNutritionOverride_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
         // Создаем продукт
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -403,13 +367,9 @@ public class CreateDishTests
     public async Task CreateDish_WithVeganFlag_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
         // Создаем веганский продукт
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
@@ -454,13 +414,9 @@ public class CreateDishTests
     public async Task CreateDish_ZeroCalories_Success()
     {
         // Arrange
-        await _databaseFixture.CleanDatabaseAsync();
-        await using var context = await _browserFixture.CreateContextAsync();
-        var page = await context.NewPageAsync();
-        var dishesPage = new DishesPage(page, _browserFixture.BaseUrl);
+        var (_, dishesPage, productsPage) = await InitializeTestAsync();
 
         // Создаем продукт
-        var productsPage = new ProductsPage(page, _browserFixture.BaseUrl);
         await productsPage.GoToProductsTabAsync();
         await productsPage.CreateProductAsync(new CreateProductDto
         {
