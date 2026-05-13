@@ -39,11 +39,7 @@ public class DatabaseFixture
     }
 }
 
-/// <summary>
-/// Фикстура для очистки БД перед каждым тестом в сьюте
-/// </summary>
 [CollectionDefinition("UI Tests")]
 public class UiTestCollection : ICollectionFixture<BrowserFixture>, ICollectionFixture<DatabaseFixture>
 {
-    // Этот класс не содержит кода, только метаданные коллекции
 }

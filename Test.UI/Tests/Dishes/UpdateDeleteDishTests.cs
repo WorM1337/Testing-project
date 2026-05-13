@@ -259,8 +259,10 @@ public class UpdateDeleteDishTests
         var isError = await dishesPage.IsErrorToastVisibleAsync();
         isError.Should().BeTrue();
         
-        // Закрываем модалку после ошибки
-        await dishesPage.CloseModalAsync();
+        // Закрываем модалку после ошибки через кнопку отмены
+        var cancelButton = page.Locator("[data-testid='cancel-btn']");
+        await cancelButton.ClickAsync();
+        await dishesPage.ModalOverlay.WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 2000 });
     }
 
     /// <summary>
@@ -309,11 +311,13 @@ public class UpdateDeleteDishTests
         await page.WaitForTimeoutAsync(500);
         
         // Проверяем значение поля калорий — браузер должен был отклонить отрицательное значение
-        var caloriesInput = page.Locator("#caloriesPerServing");
+        // Используем правильный селектор с префиксом field-
+        var caloriesInput = page.Locator("#field-caloriesPerServing");
         var inputValue = await caloriesInput.InputValueAsync();
         
-        // Закрываем модалку (отмена)
-        await page.Keyboard.PressAsync("Escape");
+        // Закрываем модалку через кнопку отмены
+        var cancelButton = page.Locator("[data-testid='cancel-btn']");
+        await cancelButton.ClickAsync();
         await dishesPage.ModalOverlay.WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 2000 });
         
         // Assert: поле должно быть пустым или содержать 0 (браузер отклоняет отрицательные значения)

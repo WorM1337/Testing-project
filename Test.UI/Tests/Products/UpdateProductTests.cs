@@ -286,11 +286,13 @@ public class UpdateProductTests
         await page.WaitForTimeoutAsync(500);
         
         // Проверяем значение поля калорий — браузер должен был отклонить отрицательное значение
-        var caloriesInput = page.Locator("#calories");
+        // Используем правильный селектор с префиксом field-
+        var caloriesInput = page.Locator("#field-caloriesPer100g");
         var inputValue = await caloriesInput.InputValueAsync();
         
-        // Закрываем модалку (отмена)
-        await page.Keyboard.PressAsync("Escape");
+        // Закрываем модалку через кнопку отмены
+        var cancelButton = page.Locator("[data-testid='cancel-btn']");
+        await cancelButton.ClickAsync();
         await productsPage.ModalOverlay.WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 2000 });
         
         // Assert: поле должно быть пустым или содержать 0 (браузер отклоняет отрицательные значения)

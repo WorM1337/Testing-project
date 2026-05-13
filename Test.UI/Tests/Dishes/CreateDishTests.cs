@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Playwright;
 using Test.UI.Fixtures;
 using Test.UI.Pages;
 
@@ -253,8 +254,10 @@ public class CreateDishTests
         var modalVisible = await dishesPage.ModalOverlay.IsVisibleAsync();
         modalVisible.Should().BeTrue("JavaScript валидация должна блокировать создание блюда без ингредиентов");
         
-        // Закрываем модалку после теста
-        await dishesPage.CloseModalAsync();
+        // Закрываем модалку после теста через кнопку отмены
+        var cancelButton = page.Locator("[data-testid='cancel-btn']");
+        await cancelButton.ClickAsync();
+        await dishesPage.ModalOverlay.WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 2000 });
     }
 
     /// <summary>
