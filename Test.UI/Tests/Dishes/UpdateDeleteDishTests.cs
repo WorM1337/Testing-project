@@ -251,13 +251,18 @@ public class UpdateDeleteDishTests
         {
             Name = "Б"
         }, isEdit: true);
-        // Кликаем кнопку сохранения, но не ждём закрытия модалки (ошибка валидации)
+        // Кликаем кнопку сохранения - валидация должна показать ошибку на поле
         await dishesPage.SaveButton.ClickAsync();
         await page.WaitForTimeoutAsync(500); // Ждём появления ошибки
         
-        // Assert
-        var isError = await dishesPage.IsErrorToastVisibleAsync();
-        isError.Should().BeTrue();
+        // Assert: проверяем, что на поле названия появилась ошибка валидации
+        var nameInput = page.Locator("#field-name");
+        var nameFormGroup = nameInput.Locator(".."); // Родительский .form-group
+        var errorMessage = nameFormGroup.Locator(".error-message");
+        await errorMessage.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 2000 });
+        
+        var errorText = await errorMessage.TextContentAsync();
+        errorText.Should().Contain("2 символов", "валидация должна требовать минимум 2 символа");
         
         // Закрываем модалку после ошибки через кнопку отмены
         var cancelButton = page.Locator("[data-testid='cancel-btn']");
@@ -307,22 +312,20 @@ public class UpdateDeleteDishTests
             CaloriesPerServing = -100
         }, isEdit: true);
         
+        // Кликаем кнопку сохранения - HTML5 валидация должна заблокировать отправку
+        await dishesPage.SaveButton.ClickAsync();
+        
         // Небольшая пауза, чтобы браузер применил валидацию
         await page.WaitForTimeoutAsync(500);
         
-        // Проверяем значение поля калорий — браузер должен был отклонить отрицательное значение
-        // Используем правильный селектор с префиксом field-
-        var caloriesInput = page.Locator("#field-caloriesPerServing");
-        var inputValue = await caloriesInput.InputValueAsync();
+        // Assert: модалка должна остаться открытой (форма не отправилась из-за валидации)
+        var isModalVisible = await dishesPage.ModalOverlay.IsVisibleAsync();
+        isModalVisible.Should().BeTrue("HTML5 валидация должна блокировать отправку формы с отрицательной калорийностью");
         
         // Закрываем модалку через кнопку отмены
         var cancelButton = page.Locator("[data-testid='cancel-btn']");
         await cancelButton.ClickAsync();
         await dishesPage.ModalOverlay.WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 2000 });
-        
-        // Assert: поле должно быть пустым или содержать 0 (браузер отклоняет отрицательные значения)
-        (inputValue == "" || inputValue == "0").Should().BeTrue(
-            $"HTML5 валидация должна отклонять отрицательные значения, но получено: '{inputValue}'");
     }
 
     #endregion

@@ -282,22 +282,20 @@ public class UpdateProductTests
             CaloriesPer100g = -10
         });
         
+        // Кликаем кнопку сохранения - HTML5 валидация должна заблокировать отправку
+        await productsPage.SaveButton.ClickAsync();
+        
         // Небольшая пауза, чтобы браузер применил валидацию
         await page.WaitForTimeoutAsync(500);
         
-        // Проверяем значение поля калорий — браузер должен был отклонить отрицательное значение
-        // Используем правильный селектор с префиксом field-
-        var caloriesInput = page.Locator("#field-caloriesPer100g");
-        var inputValue = await caloriesInput.InputValueAsync();
+        // Assert: модалка должна остаться открытой (форма не отправилась из-за валидации)
+        var isModalVisible = await productsPage.ModalOverlay.IsVisibleAsync();
+        isModalVisible.Should().BeTrue("HTML5 валидация должна блокировать отправку формы с отрицательной калорийностью");
         
         // Закрываем модалку через кнопку отмены
         var cancelButton = page.Locator("[data-testid='cancel-btn']");
         await cancelButton.ClickAsync();
         await productsPage.ModalOverlay.WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 2000 });
-        
-        // Assert: поле должно быть пустым или содержать 0 (браузер отклоняет отрицательные значения)
-        (inputValue == "" || inputValue == "0").Should().BeTrue(
-            $"HTML5 валидация должна отклонять отрицательные значения, но получено: '{inputValue}'");
     }
 
     /// <summary>
